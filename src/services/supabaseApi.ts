@@ -455,7 +455,7 @@ export const updateSubmissionDecision = async (
   id: string,
   payload: {
     status: 'accepted' | 'rejected' | 'in_review'
-    decision: 'accept' | 'major' | 'reject' | null
+    decision: 'accept' | 'minor' | 'major' | 'reject' | null
   },
 ) => {
   const timestamp = new Date().toISOString()

@@ -37,6 +37,7 @@ const editAbstract = ref('')
 const editContent = ref('')
 const editMessage = ref('')
 const decisionState = ref<'pending' | 'revise' | 'rejected' | 'accepted'>('pending')
+const decisionRevisionType = ref<'minor' | 'major'>('major')
 const decisionMessage = ref('')
 const reviewSlots = ref<
   { id: string; status: string; reviewerId: string | null; dueAt: string | null }[]
@@ -69,6 +70,10 @@ const resolveDecisionState = (
   if (decision === 'major' || decision === 'minor') return 'revise'
   return 'pending'
 }
+
+const resolveRevisionType = (
+  decision: 'accept' | 'minor' | 'major' | 'reject' | null | undefined,
+) => (decision === 'minor' ? 'minor' : 'major')
 
 const resolveStatusLabel = (
   status: 'submitted' | 'in_review' | 'accepted' | 'rejected',
@@ -108,6 +113,7 @@ onMounted(async () => {
     versionMinor.value = submission.version_minor ?? 0
     versionLabel.value = submission.version_label || '—'
     decisionState.value = resolveDecisionState(submission.status, submission.decision)
+    decisionRevisionType.value = resolveRevisionType(submission.decision)
     editTitle.value = submission.title
     editAbstract.value = submission.abstract || ''
     editContent.value = submission.content_md || ''
@@ -200,13 +206,13 @@ const saveEdits = async () => {
 const submitDecision = async () => {
   decisionMessage.value = ''
   if (!submissionIdRef.value) return
-  const payload =
+  const payload: Parameters<typeof updateSubmissionDecision>[1] =
     decisionState.value === 'accepted'
       ? { status: 'accepted' as const, decision: 'accept' as const }
       : decisionState.value === 'rejected'
         ? { status: 'rejected' as const, decision: 'reject' as const }
         : decisionState.value === 'revise'
-          ? { status: 'in_review' as const, decision: 'major' as const }
+          ? { status: 'in_review' as const, decision: decisionRevisionType.value }
           : { status: 'in_review' as const, decision: null }
 
   const { error } = await updateSubmissionDecision(submissionIdRef.value, payload)
@@ -483,6 +489,16 @@ const claimSlot = async (slotId: string) => {
                 <option value="accepted">{{ $t('detail.decisionAccept') }}</option>
               </select>
               <p class="mt-1 text-[11px] text-slate-400">{{ $t('detail.decisionDefaultHint') }}</p>
+            </div>
+            <div v-if="decisionState === 'revise'">
+              <label class="text-xs text-slate-500">{{ $t('detail.decisionRevisionType') }}</label>
+              <select
+                v-model="decisionRevisionType"
+                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="minor">{{ $t('detail.decisionMinor') }}</option>
+                <option value="major">{{ $t('detail.decisionMajor') }}</option>
+              </select>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-xs text-slate-500">{{ decisionMessage }}</span>
