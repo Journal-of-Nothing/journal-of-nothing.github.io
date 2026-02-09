@@ -39,3 +39,7 @@
 - bun run test
 - bun run lint
 - bun run format
+
+## 发布流程
+
+- 参考 RELEASE.md
