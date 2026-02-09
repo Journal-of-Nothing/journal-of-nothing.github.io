@@ -29,6 +29,7 @@ export interface SubmissionDetail {
   accepted_at?: string | null
   rejected_at?: string | null
   status: SubmissionStatus
+  decision?: 'accept' | 'minor' | 'major' | 'reject' | null
   author_id?: string | null
   author?: UserProfile | null
   keywords?: string[] | null
@@ -77,6 +78,15 @@ export interface ReviewOpinionReplyRecord {
 export interface StatIndex {
   key: string
   value: unknown
+}
+
+export interface AnnouncementRecord {
+  id: string
+  title: string
+  body_md: string | null
+  created_at: string
+  updated_at: string
+  author_id?: string | null
 }
 
 export interface ReviewSlot {

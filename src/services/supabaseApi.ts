@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
 import type {
+  AnnouncementRecord,
   CommentRecord,
   ReviewOpinionRecord,
   ReviewOpinionReplyRecord,
@@ -34,7 +35,7 @@ const normalizeSubmissionList = (
   if (!rows) return null
   return rows.map((item) => ({
     ...item,
-    author: Array.isArray(item.author) ? item.author[0] ?? null : item.author ?? null,
+    author: Array.isArray(item.author) ? (item.author[0] ?? null) : (item.author ?? null),
   }))
 }
 
@@ -42,7 +43,7 @@ const normalizeCommentList = (rows: CommentRecordRaw[] | null): CommentRecord[] 
   if (!rows) return null
   return rows.map((item) => ({
     ...item,
-    author: Array.isArray(item.author) ? item.author[0] ?? null : item.author ?? null,
+    author: Array.isArray(item.author) ? (item.author[0] ?? null) : (item.author ?? null),
   }))
 }
 
@@ -52,7 +53,7 @@ const normalizeReviewOpinionList = (
   if (!rows) return null
   return rows.map((item) => ({
     ...item,
-    reviewer: Array.isArray(item.reviewer) ? item.reviewer[0] ?? null : item.reviewer ?? null,
+    reviewer: Array.isArray(item.reviewer) ? (item.reviewer[0] ?? null) : (item.reviewer ?? null),
   }))
 }
 
@@ -62,7 +63,7 @@ const normalizeReviewOpinionReplyList = (
   if (!rows) return null
   return rows.map((item) => ({
     ...item,
-    author: Array.isArray(item.author) ? item.author[0] ?? null : item.author ?? null,
+    author: Array.isArray(item.author) ? (item.author[0] ?? null) : (item.author ?? null),
   }))
 }
 
@@ -79,15 +80,72 @@ export const fetchStats = async (): Promise<{
   return { data: fallback, error: null }
 }
 
+export const fetchAnnouncements = async (
+  limit = 5,
+): Promise<{
+  data: AnnouncementRecord[] | null
+  error: { message: string } | null
+}> => {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('id,title,body_md,created_at,updated_at,author_id')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  return {
+    data: (data as AnnouncementRecord[] | null) ?? null,
+    error: error ? { message: error.message } : null,
+  }
+}
+
+export const fetchAnnouncementsPage = async (params: {
+  page: number
+  pageSize: number
+  orderBy: 'created_at' | 'updated_at' | 'title'
+  ascending: boolean
+}): Promise<{
+  data: AnnouncementRecord[] | null
+  count: number
+  error: { message: string } | null
+}> => {
+  const from = Math.max(params.page - 1, 0) * params.pageSize
+  const to = from + params.pageSize - 1
+
+  const { data, error, count } = await supabase
+    .from('announcements')
+    .select('id,title,body_md,created_at,updated_at,author_id', { count: 'exact' })
+    .order(params.orderBy, { ascending: params.ascending })
+    .range(from, to)
+
+  return {
+    data: (data as AnnouncementRecord[] | null) ?? null,
+    count: count ?? 0,
+    error: error ? { message: error.message } : null,
+  }
+}
+
 const buildStatsFallback = async (): Promise<StatIndex[]> => {
   const weekAgo = new Date()
   weekAgo.setDate(weekAgo.getDate() - 7)
 
   const [acceptedRes, inReviewRes, weeklyCommentsRes, reviewersRes] = await Promise.all([
-    supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'accepted'),
-    supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'in_review'),
-    supabase.from('comments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
-    supabase.from('review_opinions').select('reviewer_id').not('reviewer_id', 'is', null).limit(1000),
+    supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'accepted'),
+    supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'in_review'),
+    supabase
+      .from('comments')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', weekAgo.toISOString()),
+    supabase
+      .from('review_opinions')
+      .select('reviewer_id')
+      .not('reviewer_id', 'is', null)
+      .limit(1000),
   ])
 
   const reviewerIds = new Set<string>()
@@ -216,16 +274,22 @@ export const fetchSubmissionListWithMeta = async (
       : Promise.resolve({ data: [] as Array<{ submission_id: string }>, error: null }),
   ])
 
-  const commentMap = buildCountMap((commentsRes.error ? [] : (commentsRes.data as Array<{ submission_id: string }>)) ?? [])
-  const reviewMap = buildCountMap((reviewsRes.error ? [] : (reviewsRes.data as Array<{ submission_id: string }>)) ?? [])
-  const slotMap = buildCountMap((slotsRes.error ? [] : (slotsRes.data as Array<{ submission_id: string }>)) ?? [])
+  const commentMap = buildCountMap(
+    (commentsRes.error ? [] : (commentsRes.data as Array<{ submission_id: string }>)) ?? [],
+  )
+  const reviewMap = buildCountMap(
+    (reviewsRes.error ? [] : (reviewsRes.data as Array<{ submission_id: string }>)) ?? [],
+  )
+  const slotMap = buildCountMap(
+    (slotsRes.error ? [] : (slotsRes.data as Array<{ submission_id: string }>)) ?? [],
+  )
 
   return {
     data: list.map((item) => ({
       ...item,
       comments_count: commentMap[item.id] ?? 0,
       reviews_count: reviewMap[item.id] ?? 0,
-      slots_count: status === 'in_review' ? slotMap[item.id] ?? 0 : undefined,
+      slots_count: status === 'in_review' ? (slotMap[item.id] ?? 0) : undefined,
     })),
     error: null,
   }
@@ -240,7 +304,7 @@ export const fetchSubmissionDetail = async (
   const { data, error } = await supabase
     .from('submissions')
     .select(
-      'id,title,abstract,content_md,created_at,updated_at,accepted_at,rejected_at,status,author_id,keywords,version_major,version_minor,version_label,author:users(username)',
+      'id,title,abstract,content_md,created_at,updated_at,accepted_at,rejected_at,status,decision,author_id,keywords,version_major,version_minor,version_label,author:users(username)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -248,7 +312,9 @@ export const fetchSubmissionDetail = async (
   if (error) {
     const retry = await supabase
       .from('submissions')
-      .select('id,title,abstract,content_md,created_at,updated_at,accepted_at,rejected_at,status,author_id,keywords,version_major,version_minor,version_label')
+      .select(
+        'id,title,abstract,content_md,created_at,updated_at,accepted_at,rejected_at,status,decision,author_id,keywords,version_major,version_minor,version_label',
+      )
       .eq('id', id)
       .maybeSingle()
     return {
@@ -277,19 +343,25 @@ export const createSubmission = async (payload: {
   })
 }
 
-export const updateSubmissionContent = async (id: string, payload: {
-  title: string
-  abstract: string
-  content_md: string
-  keywords?: string[] | null
-  version_major?: number | null
-  version_minor?: number | null
-  version_label?: string | null
-}) => {
-  return supabase.from('submissions').update({
-    ...payload,
-    updated_at: new Date().toISOString(),
-  }).eq('id', id)
+export const updateSubmissionContent = async (
+  id: string,
+  payload: {
+    title: string
+    abstract: string
+    content_md: string
+    keywords?: string[] | null
+    version_major?: number | null
+    version_minor?: number | null
+    version_label?: string | null
+  },
+) => {
+  return supabase
+    .from('submissions')
+    .update({
+      ...payload,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
 }
 
 export const fetchUserSubmissions = async (authorId: string) => {
@@ -300,6 +372,36 @@ export const fetchUserSubmissions = async (authorId: string) => {
     .order('updated_at', { ascending: false })
 }
 
+export const fetchUserSubmissionsPage = async (params: {
+  authorId: string
+  page: number
+  pageSize: number
+  orderBy: 'updated_at' | 'status' | 'title'
+  ascending: boolean
+}): Promise<{
+  data: Array<{ id: string; title: string; status: string; updated_at: string }> | null
+  count: number
+  error: { message: string } | null
+}> => {
+  const from = Math.max(params.page - 1, 0) * params.pageSize
+  const to = from + params.pageSize - 1
+
+  const { data, error, count } = await supabase
+    .from('submissions')
+    .select('id,title,status,updated_at', { count: 'exact' })
+    .eq('author_id', params.authorId)
+    .order(params.orderBy, { ascending: params.ascending })
+    .range(from, to)
+
+  return {
+    data:
+      (data as Array<{ id: string; title: string; status: string; updated_at: string }> | null) ??
+      null,
+    count: count ?? 0,
+    error: error ? { message: error.message } : null,
+  }
+}
+
 export const fetchUserReviewOpinions = async (reviewerId: string) => {
   return supabase
     .from('review_opinions')
@@ -308,18 +410,65 @@ export const fetchUserReviewOpinions = async (reviewerId: string) => {
     .order('created_at', { ascending: false })
 }
 
-export const updateSubmissionDecision = async (id: string, payload: {
-  status: 'accepted' | 'rejected'
-  decision: 'accept' | 'minor' | 'major' | 'reject'
-}) => {
+export const fetchUserReviewOpinionsPage = async (params: {
+  reviewerId: string
+  page: number
+  pageSize: number
+  orderBy: 'created_at' | 'status'
+  ascending: boolean
+}): Promise<{
+  data: Array<{
+    id: string
+    submission_id: string
+    status: string
+    decision: string | null
+    created_at: string
+  }> | null
+  count: number
+  error: { message: string } | null
+}> => {
+  const from = Math.max(params.page - 1, 0) * params.pageSize
+  const to = from + params.pageSize - 1
+
+  const { data, error, count } = await supabase
+    .from('review_opinions')
+    .select('id,submission_id,status,decision,created_at', { count: 'exact' })
+    .eq('reviewer_id', params.reviewerId)
+    .order(params.orderBy, { ascending: params.ascending })
+    .range(from, to)
+
+  return {
+    data:
+      (data as Array<{
+        id: string
+        submission_id: string
+        status: string
+        decision: string | null
+        created_at: string
+      }> | null) ?? null,
+    count: count ?? 0,
+    error: error ? { message: error.message } : null,
+  }
+}
+
+export const updateSubmissionDecision = async (
+  id: string,
+  payload: {
+    status: 'accepted' | 'rejected' | 'in_review'
+    decision: 'accept' | 'major' | 'reject' | null
+  },
+) => {
   const timestamp = new Date().toISOString()
-  return supabase.from('submissions').update({
-    status: payload.status,
-    decision: payload.decision,
-    updated_at: timestamp,
-    accepted_at: payload.status === 'accepted' ? timestamp : null,
-    rejected_at: payload.status === 'rejected' ? timestamp : null,
-  }).eq('id', id)
+  return supabase
+    .from('submissions')
+    .update({
+      status: payload.status,
+      decision: payload.decision,
+      updated_at: timestamp,
+      accepted_at: payload.status === 'accepted' ? timestamp : null,
+      rejected_at: payload.status === 'rejected' ? timestamp : null,
+    })
+    .eq('id', id)
 }
 
 export const fetchComments = async (
@@ -365,7 +514,9 @@ export const fetchReviewOpinions = async (
 }> => {
   const { data, error } = await supabase
     .from('review_opinions')
-    .select('id,created_at,body_md,reviewer_id,status,decision,author_reply_md,reviewer:users(username)')
+    .select(
+      'id,created_at,body_md,reviewer_id,status,decision,author_reply_md,reviewer:users(username)',
+    )
     .eq('submission_id', submissionId)
     .order('created_at', { ascending: false })
 
@@ -395,7 +546,9 @@ export const fetchReviewOpinionReplies = async (
 }> => {
   const { data, error } = await supabase
     .from('review_opinion_replies')
-    .select('id,review_opinion_id,submission_id,author_id,role,body_md,created_at,author:users(username)')
+    .select(
+      'id,review_opinion_id,submission_id,author_id,role,body_md,created_at,author:users(username)',
+    )
     .eq('submission_id', submissionId)
     .order('created_at', { ascending: true })
 
@@ -441,10 +594,13 @@ export const createReviewOpinion = async (payload: {
 }
 
 export const updateReviewOpinionReply = async (id: string, author_reply_md: string) => {
-  return supabase.from('review_opinions').update({
-    author_reply_md,
-    updated_at: new Date().toISOString(),
-  }).eq('id', id)
+  return supabase
+    .from('review_opinions')
+    .update({
+      author_reply_md,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
 }
 
 export const fetchReviewSlots = async (
@@ -459,7 +615,10 @@ export const fetchReviewSlots = async (
     .eq('submission_id', submissionId)
     .order('created_at', { ascending: true })
 
-  return { data: (data as ReviewSlot[] | null) ?? null, error: error ? { message: error.message } : null }
+  return {
+    data: (data as ReviewSlot[] | null) ?? null,
+    error: error ? { message: error.message } : null,
+  }
 }
 
 export const claimReviewSlot = async (slotId: string, reviewerId: string) => {
@@ -478,10 +637,7 @@ export const claimReviewSlot = async (slotId: string, reviewerId: string) => {
 }
 
 export const markReviewSlotExpired = async (slotId: string) => {
-  return supabase
-    .from('review_slots')
-    .update({ status: 'expired' })
-    .eq('id', slotId)
+  return supabase.from('review_slots').update({ status: 'expired' }).eq('id', slotId)
 }
 
 export const updateUserPermissions = async (payload: {
@@ -492,6 +648,27 @@ export const updateUserPermissions = async (payload: {
   can_comment?: boolean
 }) => {
   return supabase.from('users').update(payload).eq('id', payload.id)
+}
+
+export const createAnnouncement = async (payload: { title: string; body_md: string | null }) => {
+  return supabase.from('announcements').insert(payload)
+}
+
+export const updateAnnouncement = async (
+  id: string,
+  payload: { title?: string; body_md?: string | null },
+) => {
+  return supabase
+    .from('announcements')
+    .update({
+      ...payload,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+}
+
+export const deleteAnnouncement = async (id: string) => {
+  return supabase.from('announcements').delete().eq('id', id)
 }
 
 export const checkUsernameAvailable = async (username: string) => {

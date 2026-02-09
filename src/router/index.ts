@@ -10,6 +10,8 @@ import SubmissionReviewOpinionsPage from '../pages/SubmissionReviewOpinionsPage.
 import SubmissionCreatePage from '../pages/SubmissionCreatePage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import UserCenterPage from '../pages/UserCenterPage.vue'
+import GuidelinesPage from '../pages/GuidelinesPage.vue'
+import AboutPage from '../pages/AboutPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,13 +20,24 @@ const router = createRouter({
     { path: '/accepted', name: 'accepted', component: AcceptedListPage },
     { path: '/in-review', name: 'in-review', component: InReviewListPage },
     { path: '/submissions/:id', name: 'submission-detail', component: SubmissionDetailPage },
-    { path: '/submit', name: 'submission-create', component: SubmissionCreatePage, meta: { requiresAuth: true } },
-    { path: '/submissions/:id/comments', name: 'submission-comments', component: SubmissionCommentsPage },
+    {
+      path: '/submit',
+      name: 'submission-create',
+      component: SubmissionCreatePage,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/submissions/:id/comments',
+      name: 'submission-comments',
+      component: SubmissionCommentsPage,
+    },
     {
       path: '/submissions/:id/review-opinions',
       name: 'submission-review-opinions',
       component: SubmissionReviewOpinionsPage,
     },
+    { path: '/guidelines', name: 'guidelines', component: GuidelinesPage },
+    { path: '/about', name: 'about', component: AboutPage },
     { path: '/login', name: 'login', component: LoginPage },
     { path: '/me', name: 'me', component: UserCenterPage, meta: { requiresAuth: true } },
   ],

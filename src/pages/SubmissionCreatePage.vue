@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { createSubmission } from '../services/supabaseApi'
 import { useAuth } from '../stores/auth'
 
 const router = useRouter()
 const { user, profile } = useAuth()
+const { t } = useI18n()
 
 const title = ref('')
 const abstract = ref('')
@@ -20,15 +22,15 @@ const submit = async () => {
   infoMessage.value = ''
 
   if (!user.value) {
-    errorMessage.value = '请先登录'
+    errorMessage.value = t('submit.errorLogin')
     return
   }
   if (profile.value && !profile.value.can_submit) {
-    errorMessage.value = '当前账号无投稿权限'
+    errorMessage.value = t('submit.errorPermission')
     return
   }
   if (!title.value.trim() || !abstract.value.trim() || !content.value.trim()) {
-    errorMessage.value = '请填写完整信息'
+    errorMessage.value = t('submit.errorRequired')
     return
   }
 
@@ -51,7 +53,7 @@ const submit = async () => {
     return
   }
 
-  infoMessage.value = '投稿成功'
+  infoMessage.value = t('submit.success')
   isSubmitting.value = false
   router.replace('/in-review')
 }
@@ -60,43 +62,43 @@ const submit = async () => {
 <template>
   <section class="mx-auto max-w-3xl space-y-6 rounded-lg border border-slate-200 bg-white p-6">
     <div>
-      <h1 class="text-2xl font-semibold text-slate-900">投稿</h1>
-      <p class="text-sm text-slate-500">填写文章信息并提交审稿</p>
+      <h1 class="text-2xl font-semibold text-slate-900">{{ $t('submit.title') }}</h1>
+      <p class="text-sm text-slate-500">{{ $t('submit.subtitle') }}</p>
     </div>
 
     <div class="space-y-4">
       <div>
-        <label class="text-sm font-medium text-slate-700">标题</label>
+        <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelTitle') }}</label>
         <input
           v-model="title"
           class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          placeholder="文章标题"
+          :placeholder="$t('submit.placeholderTitle')"
         />
       </div>
       <div>
-        <label class="text-sm font-medium text-slate-700">摘要</label>
+        <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelAbstract') }}</label>
         <textarea
           v-model="abstract"
           rows="4"
           class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          placeholder="文章摘要"
+          :placeholder="$t('submit.placeholderAbstract')"
         />
       </div>
       <div>
-        <label class="text-sm font-medium text-slate-700">正文</label>
+        <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelContent') }}</label>
         <textarea
           v-model="content"
           rows="10"
           class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          placeholder="Markdown 正文"
+          :placeholder="$t('submit.placeholderContent')"
         />
       </div>
       <div>
-        <label class="text-sm font-medium text-slate-700">关键词</label>
+        <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelKeywords') }}</label>
         <input
           v-model="keywordsInput"
           class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          placeholder="关键词，用逗号分隔"
+          :placeholder="$t('submit.placeholderKeywords')"
         />
       </div>
     </div>
@@ -109,7 +111,7 @@ const submit = async () => {
         :disabled="isSubmitting"
         @click="submit"
       >
-        提交投稿
+        {{ $t('submit.submit') }}
       </button>
     </div>
   </section>

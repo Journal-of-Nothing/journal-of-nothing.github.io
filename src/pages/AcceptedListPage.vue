@@ -50,44 +50,53 @@ onMounted(async () => {
     <p v-if="errorMessage" class="text-sm text-amber-600">{{ errorMessage }}</p>
 
     <div class="rounded-lg border border-slate-200 bg-white">
-      <div v-if="isLoading" v-for="index in 4" :key="index" class="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0">
-        <div class="skeleton-text h-4 w-56" />
-        <div class="skeleton-text h-3 w-40" />
-      </div>
-      <div
-        v-else
-        v-for="item in items"
-        :key="item.id"
-        class="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 md:flex-row md:items-center md:justify-between"
-      >
-        <div class="space-y-2">
-          <router-link
-            class="text-base font-semibold text-slate-900 hover:text-slate-700"
-            :to="`/submissions/${item.id}`"
-          >
-            {{ item.title }}
-          </router-link>
-          <div class="flex flex-wrap gap-2 text-sm text-slate-500">
-            <span>{{ item.author }}</span>
-            <span>{{ $t('list.updatedAt', { date: item.updatedAt }) }}</span>
-            <span
-              v-for="tag in item.tags"
-              :key="tag"
-              class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700"
+      <template v-if="isLoading">
+        <div
+          v-for="index in 4"
+          :key="index"
+          class="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0"
+        >
+          <div class="skeleton-text h-4 w-56" />
+          <div class="skeleton-text h-3 w-40" />
+        </div>
+      </template>
+      <template v-else>
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 md:flex-row md:items-center md:justify-between"
+        >
+          <div class="space-y-2">
+            <router-link
+              class="text-base font-semibold text-slate-900 hover:text-slate-700"
+              :to="`/submissions/${item.id}`"
             >
-                  {{ tag === 'Accepted' ? $t('list.tagAccepted') : tag }}
+              {{ item.title }}
+            </router-link>
+            <div class="flex flex-wrap gap-2 text-sm text-slate-500">
+              <span>{{ item.author }}</span>
+              <span>{{ $t('list.updatedAt', { date: item.updatedAt }) }}</span>
+              <span
+                v-for="tag in item.tags"
+                :key="tag"
+                class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700"
+              >
+                {{ tag === 'Accepted' ? $t('list.tagAccepted') : tag }}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-500">
+            <span class="flex items-center gap-1">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {{ $t('list.comments') }}
+              {{ item.comments }}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="h-1.5 w-1.5 rounded-full bg-indigo-500" /> {{ $t('list.reviews') }}
+              {{ item.reviews }}
             </span>
           </div>
         </div>
-        <div class="flex items-center gap-3 text-xs text-slate-500">
-          <span class="flex items-center gap-1">
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {{ $t('list.comments') }} {{ item.comments }}
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="h-1.5 w-1.5 rounded-full bg-indigo-500" /> {{ $t('list.reviews') }} {{ item.reviews }}
-          </span>
-        </div>
-      </div>
+      </template>
       <div v-if="!isLoading && !items.length" class="px-4 py-8 text-center text-sm text-slate-400">
         {{ $t('list.emptyAccepted') }}
       </div>

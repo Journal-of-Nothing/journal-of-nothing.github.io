@@ -1,95 +1,105 @@
-# Public Beta Project Checklist
+# 公共测试版项目清单
 
-> Scope: Journal Supabase (open review model)
+> 范围：Journal Supabase（开放评审模型）
 
-## Milestone 0 — Launch Definition
+## 里程碑 0 — 发布定义
 
-- [ ] Confirm public beta scope: submit → open discussion → review opinions → editorial decision → list visibility
-- [ ] Confirm review model: open review (submissions and discussions are public after submit)
-- [ ] Define SLOs (availability, error budget, incident response window)
+- [x] 确认公共测试范围：提交 → 开放讨论 → 评审意见 → 编辑决定 → 列表可见性
+- [x] 确认评审模型：开放评审
+- [x] 定义 SLO（可用性、错误预算、事件响应窗口）
 
-## Milestone 1 — P0 Release Readiness
+## 里程碑 1 — P0 发布就绪
 
-### CI / Quality Gates
-- [ ] `bun run build` must pass on default branch
-- [ ] `bun run lint` must pass on default branch
-- [ ] `bun run test` must pass on default branch
-- [ ] Add minimal tests for:
-  - [ ] Auth guard routes (`/submit`, `/me`)
-  - [ ] Submission create/update flow
-  - [ ] Review opinion create/reply permission boundaries
+### CI / 质量门禁
 
-### Release Process
-- [ ] Protect default branch (PR required)
-- [ ] Add release versioning (`0.1.0-beta.x`)
-- [ ] Add changelog template for each release
+- [x] 默认分支 `bun run build` 必须通过
+- [x] 默认分支 `bun run lint` 必须通过
+- [x] 默认分支 `bun run test` 必须通过
+- [x] 添加最小测试覆盖：
+  - [x] 鉴权路由（`/submit`、`/me`）
+  - [x] 投稿创建/更新流程
+  - [x] 评审意见创建/回复权限边界
 
-## Milestone 2 — P0 Security & Abuse Resistance (Open Review Compatible)
+### 发布流程
 
-### RLS / Authorization Validation
-- [ ] Keep public-read policies aligned with open review model
-- [ ] Verify write paths require authenticated identity and relationship checks
-- [ ] Add explicit regression SQL checks for:
-  - [ ] Anonymous write blocked
-  - [ ] Self-review blocked
-  - [ ] Cross-submission reply mismatch blocked
+- [x] 保护默认分支（必须 PR）
+- [x] 添加发布版本号（`0.1.0-beta.x`）
+- [x] 为每次发布添加变更日志模板
 
-### Anti-abuse
-- [ ] Add rate limits for comment/review creation
-- [ ] Enforce account verification requirement before posting
-- [ ] Add moderation tools: report, hide, restore, mute
+## 里程碑 2 — P0 安全与滥用防护（兼容开放评审）
 
-## Milestone 3 — P0 Operations
+### RLS / 鉴权验证
 
-### Environment & Secrets
-- [ ] Separate dev/staging/prod env configs
-- [ ] Verify OAuth callback and site URL for production domain
-- [ ] Ensure frontend only uses anon key; no service role leakage
+- [ ] 公开可读策略与开放评审模型保持一致
+- [ ] 验证写入路径要求已认证身份与关系校验
+- [ ] 添加显式回归 SQL 检查：
+  - [ ] 匿名写入被阻止
+  - [ ] 禁止自我审稿
+  - [ ] 跨投稿回复不匹配被阻止
 
-### Migration / Rollback
-- [ ] Define migration order and release runbook
-- [ ] Provide rollback SQL for high-risk schema changes
-- [ ] Run one full staging drill: migrate → verify → rollback → re-migrate
+### 反滥用
 
-### Monitoring / Alerting
-- [ ] Frontend error tracking (Sentry or equivalent)
-- [ ] DB/API error-rate dashboard and alerts
-- [ ] Business KPI alerts: submission failure, login failure, review submit failure
+- [ ] 为评论/评审创建添加限流
+- [ ] 发帖前要求账号验证
+- [ ] 添加审核工具：举报、隐藏、恢复、禁言
 
-## Milestone 4 — P1 Product Completeness
+## 里程碑 3 — P0 运维
 
-### Discovery & Usability
-- [ ] Add pagination for accepted and in-review lists
-- [ ] Add search (title/author/keywords)
-- [ ] Add sorting and filters (updated time, activity)
+### 环境与密钥
 
-### Open Review UX
-- [ ] Explicit “open review” disclosure copy on submission detail
-- [ ] Threaded replies / quote reply / mention support
-- [ ] Community guidelines visible at posting points
+- [ ] 区分 dev/staging/prod 环境配置
+- [ ] 验证生产域名的 OAuth 回调与站点 URL
+- [ ] 确保前端只使用 anon key；不泄露 service role
 
-### Admin Operations
-- [ ] User search in admin permission panel
-- [ ] Add freeze/mute controls
-- [ ] Add audit log view for sensitive actions
+### 迁移 / 回滚
 
-## Milestone 5 — P1 Documentation & Compliance
+- [ ] 定义迁移顺序与发布运行手册
+- [ ] 为高风险架构变更提供回滚 SQL
+- [ ] 完成一次完整预发演练：迁移 → 验证 → 回滚 → 重新迁移
 
-- [ ] Production deployment guide
-- [ ] Incident response playbook
-- [ ] Privacy policy / terms / community rules
-- [ ] Public “How open review works” page
+### 监控 / 告警
 
-## Milestone 6 — P2 Growth & Reliability
+- [ ] 前端错误追踪（Sentry 或同类）
+- [ ] DB/API 错误率仪表盘与告警
+- [ ] 业务 KPI 告警：投稿失败、登录失败、评审提交失败
 
-- [ ] Notification pipeline (email/in-app)
-- [ ] Metrics board (DAU, participation, conversion)
-- [ ] Performance optimization for hot lists and heavy queries
+## 里程碑 4 — P1 产品完整性
 
-## Release Gate (Must all be checked)
+### 发现与可用性
 
-- [ ] Build/lint/test green for 7 consecutive days
-- [ ] No critical authorization bypass in checklist tests
-- [ ] Migration + rollback drill passed
-- [ ] Monitoring/alerting validated with on-call owner
-- [ ] Open review policy copy published in product
+- [ ] 已接受与评审中的列表分页
+- [ ] 添加搜索（标题/作者/关键词）
+- [ ] 添加排序与筛选（更新时间、活动）
+
+### 开放评审体验
+
+- [ ] 在投稿详情明确“开放评审”声明文案
+- [ ] 线程式回复 / 引用回复 / 提及支持
+- [ ] 发帖处可见社区规范
+
+### 管理员操作
+
+- [ ] 管理权限面板中的用户搜索
+- [ ] 添加冻结/禁言控制
+- [ ] 添加敏感操作审计日志视图
+
+## 里程碑 5 — P1 文档与合规
+
+- [ ] 生产部署指南
+- [ ] 事件响应手册
+- [ ] 隐私政策 / 条款 / 社区规则
+- [ ] 公开“开放评审如何运作”页面
+
+## 里程碑 6 — P2 增长与可靠性
+
+- [ ] 通知流水线（邮件/站内）
+- [ ] 指标看板（DAU、参与度、转化）
+- [ ] 热列表与高负载查询的性能优化
+
+## 发布门禁（必须全部勾选）
+
+- [ ] 连续 7 天构建/校验/测试全绿
+- [ ] 清单测试中无关键鉴权绕过
+- [ ] 迁移 + 回滚演练通过
+- [ ] 监控/告警完成验证并有值班负责人
+- [ ] 产品内发布开放评审政策文案
