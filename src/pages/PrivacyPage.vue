@@ -69,7 +69,7 @@
       <h2>联系我们</h2>
       <p>
         如果您对隐私政策有任何疑问，请通过以下方式联系我们：
-        <a href="mailto:privacy@journal.example.com">privacy@journal.example.com</a>
+        <a href="https://github.com/Journal-of-Nothing/journal-of-nothing/issues">GitHub提出issues</a>
       </p>
     </article>
   </section>

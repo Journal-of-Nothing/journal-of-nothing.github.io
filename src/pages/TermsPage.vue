@@ -64,7 +64,7 @@
       <h2>联系我们</h2>
       <p>
         如果您对这些条款有任何疑问，请联系我们：
-        <a href="mailto:terms@journal.example.com">terms@journal.example.com</a>
+        <a href="https://github.com/Journal-of-Nothing/journal-of-nothing/issues">GitHub提出issues</a>
       </p>
     </article>
   </section>
