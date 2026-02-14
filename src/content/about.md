@@ -1,6 +1,6 @@
 # 关于 journal of nothing
 
-<img src="/journal%20of%20nothing%20cover.png" alt="期刊封面" style="float:right; max-width:240px; margin:0 0 12px 16px;" />
+<img src="journal%20of%20nothing%20cover.png" alt="期刊封面" style="float:right; max-width:240px; margin:0 0 12px 16px;" />
 
 **journal of nothing** 是一份面向科研日常的娱乐性期刊。我们记录那些失败、偏差、误判、反转与偶然，也记录它们如何真正推动了认识。
 

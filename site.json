@@ -1,10 +1,10 @@
 {
   "name": "journal of nothing",
   "subtitle": "Supabase edition",
-  "favicon": "/favicon.svg",
+  "favicon": "favicon.svg",
   "footer": {
     "primary": "Journal of Nothing",
     "secondary": "An editorial workspace for slow, careful review."
   },
-  "heroImage": "/jon.png"
+  "heroImage": "jon.png"
 }
