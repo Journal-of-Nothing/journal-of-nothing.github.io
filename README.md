@@ -43,6 +43,15 @@ Journal Supabase 关注“可追踪、可讨论、可复盘”的学术写作流
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
 
+## GitHub Pages 部署变量
+
+- 工作流 `Deploy to GitHub Pages` 的 `build` job 绑定了 `github-pages` Environment。
+- 请在 `Settings > Environments > github-pages > Environment secrets` 配置以下键：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+- 变量名必须与上面完全一致（区分大小写）。
+- 若变量缺失，CI 会在构建前失败并提示 `Missing required Supabase env variables for build`。
+
 ## 开发
 
 1. 安装依赖：
