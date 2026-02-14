@@ -19,6 +19,7 @@ const ALLOWED_TAGS = [
   'h5',
   'h6',
   'a',
+  'img',
   'hr',
   'table',
   'thead',
@@ -28,7 +29,7 @@ const ALLOWED_TAGS = [
   'td',
 ]
 
-const ALLOWED_ATTR = ['href', 'title', 'target', 'rel']
+const ALLOWED_ATTR = ['href', 'title', 'target', 'rel', 'src', 'alt']
 
 export const renderMarkdown = (markdown: string): string => {
   const html = marked.parse(markdown || '', {

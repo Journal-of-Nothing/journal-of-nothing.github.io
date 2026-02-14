@@ -13,6 +13,7 @@ import {
 } from '../services/supabaseApi'
 import { useAuth } from '../stores/auth'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
+import { renderMarkdown } from '../lib/markdown'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -61,6 +62,8 @@ const decisionButtonClass = computed(() => {
   if (decisionState.value === 'revise') return 'btn-primary bg-amber-600 hover:bg-amber-700'
   return 'btn-primary'
 })
+const renderedAbstract = computed(() => renderMarkdown(submissionAbstract.value))
+const renderedContent = computed(() => renderMarkdown(submissionContent.value))
 
 const resolveDecisionState = (
   status: 'submitted' | 'in_review' | 'accepted' | 'rejected',
@@ -341,9 +344,8 @@ const claimSlot = async (slotId: string) => {
               <h2 class="font-serif text-lg font-semibold text-slate-900">
                 {{ $t('detail.summary') }}
               </h2>
-              <p class="mt-3 text-sm leading-relaxed text-slate-600">
-                {{ submissionAbstract }}
-              </p>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div class="mt-3 text-sm leading-relaxed text-slate-600" v-html="renderedAbstract" />
             </section>
 
             <div class="section-divider" />
@@ -377,7 +379,8 @@ const claimSlot = async (slotId: string) => {
               <div
                 class="journal-content mt-4 whitespace-pre-wrap rounded-lg border border-slate-200/80 bg-slate-50/80 p-5 text-sm leading-relaxed text-slate-700"
               >
-                {{ submissionContent }}
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <div v-html="renderedContent" />
               </div>
             </section>
           </div>
