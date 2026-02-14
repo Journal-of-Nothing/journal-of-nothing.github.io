@@ -120,7 +120,6 @@ onMounted(async () => {
             <router-link class="btn-primary" to="/submit">
               {{ $t('home.heroAction') }}
             </router-link>
-            <router-link class="btn-secondary" to="/submissions"> 浏览投稿 </router-link>
           </div>
           <p class="text-xs text-slate-400 fade-rise" style="animation-delay: 0.25s">
             {{ $t('home.subtitle') }}
