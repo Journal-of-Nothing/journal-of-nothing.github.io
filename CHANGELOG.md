@@ -18,6 +18,22 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 -
 
+## [0.1.0-beta.2] - 2026-02-14
+
+### Added
+
+- Added announcements feature with CRUD operations and related UI components.
+- Added decision revision types for submission update workflows.
+- Added new pages and updated routing.
+
+### Changed
+
+- Enhanced User Center page with internationalization and loading states.
+
+### Fixed
+
+-
+
 ## [0.1.0-beta.1] - 2026-02-09
 
 ### Added
