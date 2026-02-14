@@ -71,7 +71,14 @@ describe('review opinion reply permissions', () => {
       await import('../pages/SubmissionReviewOpinionsPage.vue')
     const wrapper = mount(SubmissionReviewOpinionsPage, {
       global: {
-        stubs: { RouterLink: true },
+        stubs: {
+          RouterLink: true,
+          MarkdownEditor: {
+            template:
+              '<div class="mock-markdown-editor"><textarea :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea></div>',
+            props: ['modelValue', 'placeholder'],
+          },
+        },
       },
     })
 
@@ -139,7 +146,14 @@ describe('review opinion reply permissions', () => {
       await import('../pages/SubmissionReviewOpinionsPage.vue')
     const wrapper = mount(SubmissionReviewOpinionsPage, {
       global: {
-        stubs: { RouterLink: true },
+        stubs: {
+          RouterLink: true,
+          MarkdownEditor: {
+            template:
+              '<div class="mock-markdown-editor"><textarea :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea></div>',
+            props: ['modelValue', 'placeholder'],
+          },
+        },
       },
     })
 

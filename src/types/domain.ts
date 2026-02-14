@@ -31,6 +31,9 @@ export interface SubmissionDetail {
   status: SubmissionStatus
   decision?: 'accept' | 'minor' | 'major' | 'reject' | null
   author_id?: string | null
+  author_name?: string | null
+  author_email?: string | null
+  author_affiliation?: string | null
   author?: UserProfile | null
   keywords?: string[] | null
   version_major?: number | null
@@ -50,6 +53,8 @@ export interface CommentRecord {
   id: string
   created_at: string
   body_md: string | null
+  parent_id?: string | null
+  author_id?: string | null
   author?: UserProfile | null
 }
 

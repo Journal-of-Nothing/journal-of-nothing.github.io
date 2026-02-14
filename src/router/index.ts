@@ -12,6 +12,10 @@ import LoginPage from '../pages/LoginPage.vue'
 import UserCenterPage from '../pages/UserCenterPage.vue'
 import GuidelinesPage from '../pages/GuidelinesPage.vue'
 import AboutPage from '../pages/AboutPage.vue'
+import SearchPage from '../pages/SearchPage.vue'
+import OpenReviewPage from '../pages/OpenReviewPage.vue'
+import PrivacyPage from '../pages/PrivacyPage.vue'
+import TermsPage from '../pages/TermsPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -36,8 +40,12 @@ const router = createRouter({
       name: 'submission-review-opinions',
       component: SubmissionReviewOpinionsPage,
     },
+    { path: '/search', name: 'search', component: SearchPage },
     { path: '/guidelines', name: 'guidelines', component: GuidelinesPage },
     { path: '/about', name: 'about', component: AboutPage },
+    { path: '/open-review', name: 'open-review', component: OpenReviewPage },
+    { path: '/privacy', name: 'privacy', component: PrivacyPage },
+    { path: '/terms', name: 'terms', component: TermsPage },
     { path: '/login', name: 'login', component: LoginPage },
     { path: '/me', name: 'me', component: UserCenterPage, meta: { requiresAuth: true } },
   ],

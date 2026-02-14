@@ -4,17 +4,19 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { createComment, fetchComments, fetchSubmissionDetail } from '../services/supabaseApi'
 import { useAuth } from '../stores/auth'
-
-type CommentItem = { id: string; title: string; author: string; time: string }
+import { renderMarkdown } from '../lib/markdown'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
+import CommentThread, { type CommentTreeItem } from '../components/CommentThread.vue'
 
 const route = useRoute()
 const { user, profile } = useAuth()
 const { t } = useI18n()
+
 const submissionTitle = ref('')
 const submissionMeta = ref(t('detail.meta', { author: `@${t('detail.unknownAuthor')}`, date: '—' }))
 const submissionStatus = ref(t('detail.statusInReview'))
 const submissionStatusCode = ref<'submitted' | 'in_review' | 'accepted' | 'rejected'>('in_review')
-const comments = ref<CommentItem[]>([])
+const comments = ref<CommentTreeItem[]>([])
 const isLoading = ref(true)
 const commentText = ref('')
 const submitMessage = ref('')
@@ -39,23 +41,63 @@ onMounted(async () => {
     submissionStatusCode.value = submission.status
   }
 
+  await loadComments()
+  isLoading.value = false
+})
+
+const loadComments = async () => {
+  const submissionId = route.params.id as string
   const { data, error } = await fetchComments(submissionId)
+  
   if (error) {
     errorMessage.value = t('comments.errorLoad')
-    isLoading.value = false
     return
   }
 
-  comments.value =
-    data?.map((row) => ({
-      id: row.id,
-      title: row.body_md?.slice(0, 80) || t('comments.defaultTitle'),
-      author: row.author?.username ? `@${row.author.username}` : t('comments.anonymous'),
-      time: new Date(row.created_at).toLocaleDateString(),
-    })) ?? []
+  buildCommentTree(data || [])
+}
 
-  isLoading.value = false
-})
+const buildCommentTree = (rawComments: any[]) => {
+  const commentMap = new Map<string, CommentTreeItem>()
+  const rootComments: CommentTreeItem[] = []
+
+  rawComments.forEach((row) => {
+    const item: CommentTreeItem = {
+      id: row.id,
+      body: renderMarkdown(row.body_md || ''),
+      author: row.author?.username ? `@${row.author.username}` : t('comments.anonymous'),
+      authorId: row.author_id,
+      time: new Date(row.created_at).toLocaleDateString(),
+      parentId: row.parent_id,
+      replies: [],
+      isCollapsed: false,
+      replyCount: 0,
+    }
+    commentMap.set(row.id, item)
+  })
+
+  rawComments.forEach((row) => {
+    const item = commentMap.get(row.id)!
+    if (row.parent_id && commentMap.has(row.parent_id)) {
+      const parent = commentMap.get(row.parent_id)!
+      parent.replies.push(item)
+    } else {
+      rootComments.push(item)
+    }
+  })
+
+  const countReplies = (item: CommentTreeItem): number => {
+    let count = item.replies.length
+    item.replies.forEach((reply) => {
+      count += countReplies(reply)
+    })
+    item.replyCount = count
+    return count
+  }
+
+  rootComments.forEach(countReplies)
+  comments.value = rootComments
+}
 
 const submitComment = async () => {
   submitMessage.value = ''
@@ -79,6 +121,7 @@ const submitComment = async () => {
     submission_id: submissionId,
     author_id: user.value.id,
     body_md: commentText.value.trim(),
+    parent_id: null,
   })
 
   if (error) {
@@ -88,14 +131,27 @@ const submitComment = async () => {
 
   commentText.value = ''
   submitMessage.value = t('comments.success')
-  const { data } = await fetchComments(submissionId)
-  comments.value =
-    data?.map((row) => ({
-      id: row.id,
-      title: row.body_md?.slice(0, 80) || t('comments.defaultTitle'),
-      author: row.author?.username ? `@${row.author.username}` : t('comments.anonymous'),
-      time: new Date(row.created_at).toLocaleDateString(),
-    })) ?? comments.value
+  await loadComments()
+}
+
+const submitReply = async (parentId: string, body: string) => {
+  if (!user.value || !body.trim()) return
+
+  const submissionId = route.params.id as string
+  const { error } = await createComment({
+    submission_id: submissionId,
+    author_id: user.value.id,
+    body_md: body.trim(),
+    parent_id: parentId,
+  })
+
+  if (!error) {
+    await loadComments()
+  }
+}
+
+const toggleCollapse = (comment: CommentTreeItem) => {
+  comment.isCollapsed = !comment.isCollapsed
 }
 </script>
 
@@ -141,67 +197,63 @@ const submitComment = async () => {
 
     <p v-if="errorMessage" class="text-sm text-amber-600">{{ errorMessage }}</p>
 
-    <div class="rounded-lg border border-slate-200 bg-white">
-      <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h2 class="text-sm font-semibold text-slate-900">{{ $t('comments.title') }}</h2>
-        <span class="text-sm text-slate-500">{{ comments.length }} 条</span>
-      </div>
-      <div class="border-b border-slate-200 px-6 py-4">
-        <label class="text-sm font-medium text-slate-700" for="comment">{{
-          $t('comments.newComment')
-        }}</label>
-        <textarea
-          id="comment"
-          v-model="commentText"
-          rows="4"
-          :placeholder="$t('comments.placeholder')"
-          class="mt-2 w-full rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none"
-        />
-        <div class="mt-3 flex items-center justify-between">
-          <div class="text-xs">
-            <p v-if="submitError" class="text-red-600">{{ submitError }}</p>
-            <p v-if="submitMessage" class="text-slate-500">{{ submitMessage }}</p>
+    <div class="space-y-4">
+      <div class="github-comment">
+        <div class="github-comment-header">
+          <div class="github-comment-avatar">
+            {{ user ? (user.user_metadata?.user_name || user.email || 'U').charAt(0).toUpperCase() : '?' }}
           </div>
-          <button
-            class="ml-auto rounded-md bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-            @click="submitComment"
-          >
-            {{ $t('comments.submit') }}
-          </button>
+          <span class="text-sm text-slate-600">{{ $t('comments.write') }}</span>
+        </div>
+        <div class="github-comment-body">
+          <MarkdownEditor
+            v-model="commentText"
+            :height="150"
+            :placeholder="$t('comments.placeholder')"
+          />
+          <div class="mt-3 flex items-center justify-between">
+            <div class="text-xs">
+              <p v-if="submitError" class="text-red-600">{{ submitError }}</p>
+              <p v-if="submitMessage" class="text-emerald-600">{{ submitMessage }}</p>
+            </div>
+            <button
+              class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              :disabled="!commentText.trim()"
+              @click="submitComment"
+            >
+              {{ $t('comments.submit') }}
+            </button>
+          </div>
         </div>
       </div>
-      <ul class="divide-y divide-slate-100">
-        <template v-if="isLoading">
-          <li v-for="index in 3" :key="index" class="px-6 py-4">
-            <div class="flex items-start gap-3">
-              <span class="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-200" />
-              <div class="flex-1 space-y-2">
-                <div class="skeleton-text h-4 w-48" />
-                <div class="skeleton-text h-3 w-32" />
-              </div>
-            </div>
-          </li>
-        </template>
-        <template v-else>
-          <li v-for="comment in comments" :key="comment.id" class="px-6 py-4">
-            <div class="flex items-start gap-3">
-              <span class="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <p class="font-medium text-slate-900">{{ comment.title }}</p>
-                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                    {{ $t('common.discussion') }}
-                  </span>
-                </div>
-                <p class="text-xs text-slate-500">{{ comment.author }} · {{ comment.time }}</p>
-              </div>
-            </div>
-          </li>
-        </template>
-      </ul>
-      <p v-if="!isLoading && !comments.length" class="px-6 py-6 text-center text-xs text-slate-400">
-        {{ $t('comments.empty') }}
-      </p>
+
+      <div v-if="isLoading" class="space-y-4">
+        <div v-for="index in 3" :key="index" class="github-comment">
+          <div class="github-comment-header">
+            <div class="skeleton h-8 w-8 rounded-full" />
+            <div class="skeleton-text h-4 w-32" />
+          </div>
+          <div class="github-comment-body">
+            <div class="skeleton-text h-4 w-full" />
+            <div class="skeleton-text mt-2 h-4 w-2/3" />
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="comments.length === 0" class="rounded-lg border border-slate-200 bg-white py-12 text-center">
+        <p class="text-slate-400">{{ $t('comments.empty') }}</p>
+      </div>
+
+      <template v-else>
+        <CommentThread
+          v-for="comment in comments"
+          :key="comment.id"
+          :comment="comment"
+          :depth="0"
+          @reply="submitReply"
+          @toggle-collapse="toggleCollapse"
+        />
+      </template>
     </div>
   </section>
 </template>

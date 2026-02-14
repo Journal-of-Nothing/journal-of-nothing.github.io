@@ -12,6 +12,7 @@ import {
   updateSubmissionDecision,
 } from '../services/supabaseApi'
 import { useAuth } from '../stores/auth'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -55,10 +56,10 @@ const isStaff = computed(
   () => profile.value?.role === 'admin' || profile.value?.role === 'deputy_editor',
 )
 const decisionButtonClass = computed(() => {
-  if (decisionState.value === 'accepted') return 'bg-emerald-600 hover:bg-emerald-700'
-  if (decisionState.value === 'rejected') return 'bg-rose-600 hover:bg-rose-700'
-  if (decisionState.value === 'revise') return 'bg-amber-600 hover:bg-amber-700'
-  return 'bg-slate-600 hover:bg-slate-700'
+  if (decisionState.value === 'accepted') return 'btn-primary bg-emerald-600 hover:bg-emerald-700'
+  if (decisionState.value === 'rejected') return 'btn-primary bg-rose-600 hover:bg-rose-700'
+  if (decisionState.value === 'revise') return 'btn-primary bg-amber-600 hover:bg-amber-700'
+  return 'btn-primary'
 })
 
 const resolveDecisionState = (
@@ -252,85 +253,129 @@ const claimSlot = async (slotId: string) => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <header class="rounded-lg border border-slate-200 bg-white">
-      <div class="border-b border-slate-200 px-6 py-5">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 class="text-2xl font-semibold text-slate-900">{{ submissionTitle }}</h1>
-            <p class="mt-1 text-sm text-slate-500">{{ submissionMeta }}</p>
+  <section class="space-y-8">
+    <!-- Header -->
+    <header class="card-surface fade-rise overflow-hidden">
+      <div class="border-b border-slate-200/80 px-6 py-6 md:px-8 md:py-7">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="flex-1">
+            <h1 class="font-serif text-2xl font-semibold text-slate-900 md:text-3xl">
+              {{ submissionTitle }}
+            </h1>
+            <p class="mt-2 text-sm text-slate-500">{{ submissionMeta }}</p>
           </div>
           <span
-            class="rounded-full px-3 py-1 text-xs font-medium"
+            class="badge shrink-0"
             :class="
               submissionStatusCode === 'accepted'
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-amber-50 text-amber-700'
+                ? 'badge-success'
+                : submissionStatusCode === 'rejected'
+                  ? 'badge-error'
+                  : 'badge-warning'
             "
           >
             {{ submissionStatus }}
           </span>
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-6 px-6 py-3 text-sm text-slate-500">
-        <span class="font-medium text-slate-700">{{ $t('detail.tabContent') }}</span>
-        <router-link
-          class="text-slate-500 hover:text-slate-700"
-          :to="`/submissions/${route.params.id}/comments`"
-        >
+      <div class="flex flex-wrap items-center gap-1 px-6 py-3 md:px-8">
+        <router-link class="nav-link" :to="`/submissions/${route.params.id}`">
+          {{ $t('detail.tabContent') }}
+        </router-link>
+        <router-link class="nav-link" :to="`/submissions/${route.params.id}/comments`">
           {{ $t('detail.tabComments') }}
         </router-link>
-        <router-link
-          class="text-slate-500 hover:text-slate-700"
-          :to="`/submissions/${route.params.id}/review-opinions`"
-        >
+        <router-link class="nav-link" :to="`/submissions/${route.params.id}/review-opinions`">
           {{ $t('detail.tabReviews') }}
         </router-link>
       </div>
     </header>
 
-    <p v-if="errorMessage" class="text-sm text-amber-600">{{ errorMessage }}</p>
-    <p v-if="noticeMessage" class="text-sm text-slate-500">{{ noticeMessage }}</p>
+    <!-- Messages -->
+    <div class="space-y-3">
+      <p
+        v-if="errorMessage"
+        class="fade-rise rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700 ring-1 ring-amber-600/20"
+      >
+        {{ errorMessage }}
+      </p>
+      <p
+        v-if="noticeMessage"
+        class="fade-rise rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-600/10"
+      >
+        {{ noticeMessage }}
+      </p>
+    </div>
 
     <div class="grid gap-6 lg:grid-cols-[3fr_1fr]">
+      <!-- Main Content -->
       <div class="space-y-6">
-        <article v-if="isLoading" class="rounded-lg border border-slate-200 bg-white">
-          <div class="space-y-6 px-6 py-5">
-            <div class="skeleton-text h-4 w-20" />
-            <div class="skeleton-text h-3 w-full" />
-            <div class="skeleton-text h-4 w-24" />
-            <div class="skeleton-text h-3 w-2/3" />
-            <div class="skeleton-text h-4 w-20" />
-            <div class="skeleton h-32" />
+        <!-- Loading Skeleton -->
+        <article v-if="isLoading" class="card-surface fade-rise p-6 md:p-8">
+          <div class="space-y-8">
+            <div class="space-y-3">
+              <div class="skeleton-text h-5 w-24" />
+              <div class="skeleton-text h-4 w-full" />
+              <div class="skeleton-text h-4 w-5/6" />
+            </div>
+            <div class="space-y-3">
+              <div class="skeleton-text h-5 w-32" />
+              <div class="flex flex-wrap gap-2">
+                <div class="skeleton h-6 w-16 rounded-full" />
+                <div class="skeleton h-6 w-20 rounded-full" />
+                <div class="skeleton h-6 w-14 rounded-full" />
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div class="skeleton-text h-5 w-28" />
+              <div class="skeleton h-40 w-full rounded-lg" />
+            </div>
           </div>
         </article>
-        <article v-else class="rounded-lg border border-slate-200 bg-white">
-          <div class="space-y-6 px-6 py-5">
-            <section>
-              <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.summary') }}</h3>
-              <p class="mt-2 text-sm text-slate-600">
+
+        <!-- Content Article -->
+        <article v-else class="card-surface fade-rise p-6 md:p-8">
+          <div class="space-y-8">
+            <!-- Abstract -->
+            <section class="fade-rise-delay-1">
+              <h2 class="font-serif text-lg font-semibold text-slate-900">
+                {{ $t('detail.summary') }}
+              </h2>
+              <p class="mt-3 text-sm leading-relaxed text-slate-600">
                 {{ submissionAbstract }}
               </p>
             </section>
-            <section>
-              <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.keywords') }}</h3>
-              <div class="mt-2 flex flex-wrap gap-2">
+
+            <div class="section-divider" />
+
+            <!-- Keywords -->
+            <section class="fade-rise-delay-1">
+              <h2 class="font-serif text-lg font-semibold text-slate-900">
+                {{ $t('detail.keywords') }}
+              </h2>
+              <div class="mt-3 flex flex-wrap gap-2">
                 <span
                   v-for="tag in keywords"
                   :key="tag"
-                  class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                  class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-600/10"
                 >
                   {{ tag }}
                 </span>
-                <span v-if="!keywords.length" class="text-sm text-slate-400">{{
-                  $t('detail.emptyKeywords')
-                }}</span>
+                <span v-if="!keywords.length" class="text-sm text-slate-400">
+                  {{ $t('detail.emptyKeywords') }}
+                </span>
               </div>
             </section>
-            <section>
-              <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.content') }}</h3>
+
+            <div class="section-divider" />
+
+            <!-- Content -->
+            <section class="fade-rise-delay-2">
+              <h2 class="font-serif text-lg font-semibold text-slate-900">
+                {{ $t('detail.content') }}
+              </h2>
               <div
-                class="mt-2 whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+                class="journal-content mt-4 whitespace-pre-wrap rounded-lg border border-slate-200/80 bg-slate-50/80 p-5 text-sm leading-relaxed text-slate-700"
               >
                 {{ submissionContent }}
               </div>
@@ -338,64 +383,70 @@ const claimSlot = async (slotId: string) => {
           </div>
         </article>
 
+        <!-- Edit Form -->
         <article
-          v-if="isAuthor && submissionStatus !== '已发表' && submissionStatus !== '拒稿'"
-          class="rounded-lg border border-slate-200 bg-white"
+          v-if="
+            isAuthor && submissionStatusCode !== 'accepted' && submissionStatusCode !== 'rejected'
+          "
+          class="card-surface fade-rise fade-rise-delay-2 overflow-hidden"
         >
-          <div class="border-b border-slate-200 px-6 py-4">
-            <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.editTitle') }}</h3>
+          <div class="border-b border-slate-200/80 px-6 py-4 md:px-8">
+            <h2 class="font-serif text-lg font-semibold text-slate-900">
+              {{ $t('detail.editTitle') }}
+            </h2>
           </div>
-          <div class="space-y-4 px-6 py-5 text-sm">
+          <div class="space-y-5 p-6 md:p-8">
             <div>
-              <label class="text-slate-500">{{ $t('detail.editLabelTitle') }}</label>
-              <input
-                v-model="editTitle"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2"
-              />
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.editLabelTitle')
+              }}</label>
+              <input v-model="editTitle" class="input-field" />
             </div>
             <div>
-              <label class="text-slate-500">{{ $t('detail.editLabelAbstract') }}</label>
-              <textarea
-                v-model="editAbstract"
-                rows="3"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2"
-              />
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.editLabelAbstract')
+              }}</label>
+              <MarkdownEditor v-model="editAbstract" :height="200" />
             </div>
             <div>
-              <label class="text-slate-500">{{ $t('detail.editLabelContent') }}</label>
-              <textarea
-                v-model="editContent"
-                rows="6"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2"
-              />
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.editLabelContent')
+              }}</label>
+              <MarkdownEditor v-model="editContent" :height="300" />
             </div>
             <div>
-              <label class="text-slate-500">{{ $t('detail.editLabelKeywords') }}</label>
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.editLabelKeywords')
+              }}</label>
               <input
                 v-model="editKeywordsInput"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2"
+                class="input-field"
                 :placeholder="$t('submit.placeholderKeywords')"
               />
             </div>
             <div>
-              <label class="text-slate-500">{{ $t('detail.editLabelVersion') }}</label>
-              <select
-                v-model="versionChangeType"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2"
-              >
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.editLabelVersion')
+              }}</label>
+              <select v-model="versionChangeType" class="select-field">
                 <option value="minor">{{ $t('detail.editOptionMinor') }}</option>
                 <option value="major">{{ $t('detail.editOptionMajor') }}</option>
               </select>
-              <p class="mt-1 text-xs text-slate-400">
+              <p class="mt-2 text-xs text-slate-500">
                 {{ $t('detail.editCurrentVersion', { version: versionLabel }) }}
               </p>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-500">{{ editMessage }}</span>
-              <button
-                class="rounded-md bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
-                @click="saveEdits"
+            <div class="flex items-center justify-between pt-2">
+              <span
+                class="text-sm"
+                :class="
+                  editMessage.includes('Saved') || editMessage.includes('保存')
+                    ? 'text-emerald-600'
+                    : 'text-rose-600'
+                "
+                >{{ editMessage }}</span
               >
+              <button class="btn-primary" @click="saveEdits">
                 {{ $t('detail.editSave') }}
               </button>
             </div>
@@ -403,107 +454,141 @@ const claimSlot = async (slotId: string) => {
         </article>
       </div>
 
-      <aside class="space-y-4">
-        <div class="rounded-lg border border-slate-200 bg-white p-5 text-sm">
-          <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.slotsTitle') }}</h3>
-          <div class="mt-3 space-y-2 text-slate-600">
-            <p>
-              {{
-                $t('detail.slotsOpen', {
-                  count: reviewSlots.filter((slot) => slot.status === 'open').length,
-                })
-              }}
-            </p>
-            <p>
-              {{
-                $t('detail.slotsClaimed', {
-                  count: reviewSlots.filter((slot) => slot.status === 'claimed').length,
-                })
-              }}
-            </p>
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+        <!-- Review Slots -->
+        <div class="card-surface fade-rise fade-rise-delay-1 p-5">
+          <h2 class="font-serif text-base font-semibold text-slate-900">
+            {{ $t('detail.slotsTitle') }}
+          </h2>
+          <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-lg bg-emerald-50 px-3 py-2 text-center">
+              <span class="block text-lg font-semibold text-emerald-700">
+                {{ reviewSlots.filter((slot) => slot.status === 'open').length }}
+              </span>
+              <span class="text-xs text-emerald-600">{{
+                $t('detail.slotsOpenLabel') || 'Open'
+              }}</span>
+            </div>
+            <div class="rounded-lg bg-slate-100 px-3 py-2 text-center">
+              <span class="block text-lg font-semibold text-slate-700">
+                {{ reviewSlots.filter((slot) => slot.status === 'claimed').length }}
+              </span>
+              <span class="text-xs text-slate-600">{{
+                $t('detail.slotsClaimedLabel') || 'Claimed'
+              }}</span>
+            </div>
           </div>
-          <div class="mt-3 space-y-2">
+          <div class="mt-4 space-y-2">
             <button
               v-for="slot in reviewSlots"
               :key="slot.id"
-              class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-700"
+              class="w-full rounded-lg border px-3 py-2.5 text-sm transition-all duration-200"
               :class="
-                slot.status === 'open' ? 'hover:border-slate-300' : 'bg-slate-50 text-slate-400'
+                slot.status === 'open'
+                  ? 'btn-secondary border-dashed'
+                  : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
               "
               :disabled="slot.status !== 'open'"
               @click="claimSlot(slot.id)"
             >
-              {{ slot.status === 'open' ? $t('detail.slotClaim') : $t('detail.slotClaimed') }}
-              <span v-if="slot.dueAt" class="ml-2 text-slate-400">{{
-                $t('detail.slotDue', { date: new Date(slot.dueAt).toLocaleDateString() })
-              }}</span>
+              <span class="flex items-center justify-between">
+                <span>{{
+                  slot.status === 'open' ? $t('detail.slotClaim') : $t('detail.slotClaimed')
+                }}</span>
+                <span v-if="slot.dueAt" class="text-xs text-slate-400">
+                  {{ $t('detail.slotDue', { date: new Date(slot.dueAt).toLocaleDateString() }) }}
+                </span>
+              </span>
             </button>
-            <p v-if="slotMessage" class="text-xs text-amber-600">{{ slotMessage }}</p>
+            <p v-if="slotMessage" class="text-xs text-rose-600">{{ slotMessage }}</p>
           </div>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.authorTitle') }}</h3>
-          <div class="mt-3 text-sm text-slate-600">
+
+        <!-- Author Info -->
+        <div class="card-surface fade-rise fade-rise-delay-2 p-5">
+          <h2 class="font-serif text-base font-semibold text-slate-900">
+            {{ $t('detail.authorTitle') }}
+          </h2>
+          <div class="mt-4">
             <p class="font-medium text-slate-900">{{ authorName }}</p>
             <p class="mt-1 text-xs text-slate-500">{{ $t('detail.authorMeta') }}</p>
           </div>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.keywords') }}</h3>
-          <div class="mt-3 flex flex-wrap gap-2">
+
+        <!-- Keywords Cloud -->
+        <div class="card-surface fade-rise fade-rise-delay-2 p-5">
+          <h2 class="font-serif text-base font-semibold text-slate-900">
+            {{ $t('detail.keywords') }}
+          </h2>
+          <div class="mt-4 flex flex-wrap gap-2">
             <span
               v-for="keyword in keywords"
               :key="keyword"
-              class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+              class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-600/10"
             >
               {{ keyword }}
             </span>
+            <span v-if="!keywords.length" class="text-sm text-slate-400">—</span>
           </div>
         </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
-          <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.timeTitle') }}</h3>
-          <div class="mt-3 space-y-2">
+
+        <!-- Timeline -->
+        <div class="card-surface fade-rise fade-rise-delay-3 p-5 text-sm">
+          <h2 class="font-serif text-base font-semibold text-slate-900">
+            {{ $t('detail.timeTitle') }}
+          </h2>
+          <div class="mt-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span>{{ $t('detail.timeSubmitted') }}</span>
-              <span class="text-slate-900">{{ submittedAt }}</span>
+              <span class="text-slate-500">{{ $t('detail.timeSubmitted') }}</span>
+              <span class="font-medium text-slate-900">{{ submittedAt }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span>{{ $t('detail.timeAccepted') }}</span>
-              <span class="text-slate-900">{{ acceptedAt }}</span>
+              <span class="text-slate-500">{{ $t('detail.timeAccepted') }}</span>
+              <span class="font-medium text-slate-900">{{ acceptedAt }}</span>
             </div>
           </div>
         </div>
 
-        <div v-if="isStaff" class="rounded-lg border border-slate-200 bg-white p-5 text-sm">
-          <h3 class="text-base font-semibold text-slate-900">{{ $t('detail.decisionTitle') }}</h3>
-          <div class="mt-3 space-y-3">
+        <!-- Decision Panel (Staff Only) -->
+        <div v-if="isStaff" class="card-surface fade-rise fade-rise-delay-3 overflow-hidden p-5">
+          <h2 class="font-serif text-base font-semibold text-slate-900">
+            {{ $t('detail.decisionTitle') }}
+          </h2>
+          <div class="mt-4 space-y-4">
             <div>
-              <label class="text-xs text-slate-500">{{ $t('detail.decisionLabel') }}</label>
-              <select
-                v-model="decisionState"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-              >
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.decisionLabel')
+              }}</label>
+              <select v-model="decisionState" class="select-field">
                 <option value="pending">{{ $t('detail.decisionPending') }}</option>
                 <option value="revise">{{ $t('detail.decisionRevise') }}</option>
                 <option value="rejected">{{ $t('detail.decisionReject') }}</option>
                 <option value="accepted">{{ $t('detail.decisionAccept') }}</option>
               </select>
-              <p class="mt-1 text-[11px] text-slate-400">{{ $t('detail.decisionDefaultHint') }}</p>
+              <p class="mt-1.5 text-xs text-slate-500">{{ $t('detail.decisionDefaultHint') }}</p>
             </div>
             <div v-if="decisionState === 'revise'">
-              <label class="text-xs text-slate-500">{{ $t('detail.decisionRevisionType') }}</label>
-              <select
-                v-model="decisionRevisionType"
-                class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-              >
+              <label class="mb-2 block text-sm font-medium text-slate-700">{{
+                $t('detail.decisionRevisionType')
+              }}</label>
+              <select v-model="decisionRevisionType" class="select-field">
                 <option value="minor">{{ $t('detail.decisionMinor') }}</option>
                 <option value="major">{{ $t('detail.decisionMajor') }}</option>
               </select>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-500">{{ decisionMessage }}</span>
+            <div class="flex items-center justify-between pt-2">
+              <span
+                class="text-xs"
+                :class="
+                  decisionMessage.includes('Updated') || decisionMessage.includes('更新')
+                    ? 'text-emerald-600'
+                    : 'text-rose-600'
+                "
+                >{{ decisionMessage }}</span
+              >
               <button
-                class="rounded-md px-3 py-2 text-xs font-semibold text-white"
+                class="px-4 py-2 text-xs font-semibold text-white rounded-lg transition-all duration-200"
                 :class="decisionButtonClass"
                 @click="submitDecision"
               >

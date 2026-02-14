@@ -331,6 +331,9 @@ export const createSubmission = async (payload: {
   abstract: string
   content_md: string
   author_id: string
+  author_name?: string | null
+  author_email?: string | null
+  author_affiliation?: string | null
   keywords?: string[] | null
 }) => {
   return supabase.from('submissions').insert({
@@ -479,16 +482,16 @@ export const fetchComments = async (
 }> => {
   const { data, error } = await supabase
     .from('comments')
-    .select('id,created_at,body_md,author:users(username)')
+    .select('id,created_at,body_md,parent_id,author:users(username),author_id')
     .eq('submission_id', submissionId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true })
 
   if (error) {
     const retry = await supabase
       .from('comments')
-      .select('id,created_at,body_md')
+      .select('id,created_at,body_md,parent_id,author_id')
       .eq('submission_id', submissionId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
     return {
       data: (retry.data as CommentRecord[] | null) ?? null,
       error: retry.error ? { message: retry.error.message } : null,
@@ -502,6 +505,7 @@ export const createComment = async (payload: {
   submission_id: string
   author_id: string
   body_md: string
+  parent_id?: string | null
 }) => {
   return supabase.from('comments').insert(payload)
 }

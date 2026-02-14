@@ -26,6 +26,9 @@ create table if not exists public.submissions (
   status text default 'submitted',
   decision text check (decision in ('accept', 'minor', 'major', 'reject')),
   author_id uuid references public.users(id) on delete set null,
+  author_name text,
+  author_email text,
+  author_affiliation text,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   accepted_at timestamptz,
@@ -45,6 +48,7 @@ create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   submission_id uuid references public.submissions(id) on delete cascade,
   author_id uuid references public.users(id) on delete set null,
+  parent_id uuid references public.comments(id) on delete cascade,
   body_md text,
   created_at timestamptz default now()
 );

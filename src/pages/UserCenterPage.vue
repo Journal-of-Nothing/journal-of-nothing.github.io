@@ -20,6 +20,10 @@ const { t } = useI18n()
 const authUser = computed(() => user.value)
 const isAdmin = computed(() => profile.value?.role === 'admin')
 
+// Tab navigation
+const activeTab = ref<'submissions' | 'reviews'>('submissions')
+const adminActiveTab = ref<'permissions' | 'announcements'>('permissions')
+
 const adminTargetId = ref('')
 const adminRole = ref<'author' | 'reviewer' | 'deputy_editor' | 'admin'>('author')
 const adminCanSubmit = ref(true)
@@ -81,6 +85,23 @@ const announcementsTotalPages = computed(() =>
 )
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString()
+
+const getStatusBadgeClass = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'submitted': 'badge-info',
+    'in_review': 'badge-warning',
+    'reviewed': 'badge-info',
+    'accepted': 'badge-success',
+    'rejected': 'badge-error',
+    'published': 'badge-success',
+    'pending': 'badge-neutral',
+    'approved': 'badge-success',
+    'declined': 'badge-error',
+    'major_revision': 'badge-warning',
+    'minor_revision': 'badge-warning',
+  }
+  return statusMap[status.toLowerCase()] || 'badge-neutral'
+}
 
 const handleSignOut = async () => {
   await signOut()
@@ -257,290 +278,402 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <header class="space-y-2">
-      <h1 class="text-2xl font-semibold text-slate-900">{{ $t('user.title') }}</h1>
-      <p class="text-sm text-slate-500">{{ $t('user.subtitle') }}</p>
+  <section class="space-y-8">
+    <!-- Header -->
+    <header class="fade-rise">
+      <h1 class="font-serif text-3xl font-bold text-slate-900">{{ $t('user.title') }}</h1>
+      <p class="mt-2 text-sm text-slate-500">{{ $t('user.subtitle') }}</p>
     </header>
 
-    <div class="grid gap-4 md:grid-cols-2">
-      <div class="card-surface flex min-h-[160px] flex-col p-5">
-        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
-          {{ $t('user.sectionProfile') }}
-        </p>
-        <p class="mt-3 text-lg font-semibold text-slate-900">
+    <!-- Profile Cards -->
+    <div class="grid gap-6 md:grid-cols-2">
+      <div class="card-elevated flex min-h-[160px] flex-col p-6 fade-rise fade-rise-delay-1">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            {{ $t('user.sectionProfile') }}
+          </p>
+        </div>
+        <p class="mt-4 font-serif text-xl font-semibold text-slate-900">
           {{ authUser?.user_metadata?.user_name || authUser?.email || $t('app.anonymous') }}
         </p>
-        <p class="mt-2 text-sm text-slate-600">{{ $t('user.currentUser') }}</p>
+        <p class="mt-1 text-sm text-slate-600">{{ $t('user.currentUser') }}</p>
       </div>
-      <div class="card-surface flex min-h-[160px] flex-col p-5 text-sm">
-        <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
-          {{ $t('user.sectionPermissions') }}
-        </p>
-        <div class="mt-3 space-y-1 text-slate-700">
-          <p>{{ $t('user.roleLabel', { role: profile?.role || $t('user.roleUnset') }) }}</p>
-          <p>
-            {{
-              $t('user.canSubmit', {
-                value: profile?.can_submit ? $t('user.valueAllow') : $t('user.valueDeny'),
-              })
-            }}
+
+      <div class="card-surface flex min-h-[160px] flex-col p-6 fade-rise fade-rise-delay-1">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            {{ $t('user.sectionPermissions') }}
           </p>
-          <p>
-            {{
-              $t('user.canReview', {
-                value: profile?.can_review ? $t('user.valueAllow') : $t('user.valueDeny'),
-              })
-            }}
-          </p>
-          <p>
-            {{
-              $t('user.canComment', {
-                value: profile?.can_comment ? $t('user.valueAllow') : $t('user.valueDeny'),
-              })
-            }}
-          </p>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500">{{ $t('user.roleLabel', { role: '' }) }}</span>
+            <span class="badge" :class="profile?.role === 'admin' ? 'badge-success' : 'badge-neutral'">
+              {{ profile?.role || $t('user.roleUnset') }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500">{{ $t('user.canSubmit', { value: '' }) }}</span>
+            <span class="badge" :class="profile?.can_submit ? 'badge-success' : 'badge-neutral'">
+              {{ profile?.can_submit ? $t('user.valueAllow') : $t('user.valueDeny') }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500">{{ $t('user.canReview', { value: '' }) }}</span>
+            <span class="badge" :class="profile?.can_review ? 'badge-success' : 'badge-neutral'">
+              {{ profile?.can_review ? $t('user.valueAllow') : $t('user.valueDeny') }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500">{{ $t('user.canComment', { value: '' }) }}</span>
+            <span class="badge" :class="profile?.can_comment ? 'badge-success' : 'badge-neutral'">
+              {{ profile?.can_comment ? $t('user.valueAllow') : $t('user.valueDeny') }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
-      <section class="card-surface flex min-h-[420px] flex-col p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-base font-semibold text-slate-900">{{ $t('user.mySubmissions') }}</h2>
-          <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span>{{ $t('user.sortLabel') }}</span>
-            <select
-              v-model="submissionsOrderBy"
-              class="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs"
-            >
-              <option value="updated_at">{{ $t('user.sortUpdated') }}</option>
-              <option value="title">{{ $t('user.sortTitle') }}</option>
-              <option value="status">{{ $t('user.sortStatus') }}</option>
-            </select>
-            <button
-              class="rounded-full border border-slate-200 px-2 py-1 text-xs"
-              @click="submissionsAscending = !submissionsAscending"
-            >
-              {{ submissionsAscending ? 'ASC' : 'DESC' }}
-            </button>
-          </div>
-        </div>
-        <p v-if="submissionsError" class="mt-2 text-sm text-amber-600">{{ submissionsError }}</p>
-        <div class="mt-4 flex-1 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-500">
-              <tr>
-                <th class="px-4 py-3">{{ $t('user.tableTitle') }}</th>
-                <th class="px-4 py-3">{{ $t('user.tableStatus') }}</th>
-                <th class="px-4 py-3">{{ $t('user.tableUpdated') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-if="isLoadingSubmissions">
-                <tr v-for="index in 3" :key="index" class="border-t border-slate-100">
-                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-32" /></td>
-                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-16" /></td>
-                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-20" /></td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr v-for="item in submissionRows" :key="item.id" class="border-t border-slate-100">
-                  <td class="px-4 py-3">
-                    <router-link
-                      class="font-medium text-slate-900 hover:text-slate-700"
-                      :to="`/submissions/${item.id}`"
-                    >
-                      {{ item.title }}
-                    </router-link>
-                  </td>
-                  <td class="px-4 py-3 text-xs text-slate-500">{{ item.status }}</td>
-                  <td class="px-4 py-3 text-xs text-slate-500">
-                    {{ formatDate(item.updated_at) }}
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-          <div
-            v-if="!isLoadingSubmissions && !submissionRows.length"
-            class="px-4 py-6 text-center text-xs text-slate-400"
-          >
-            {{ $t('user.emptySubmissions') }}
-          </div>
-        </div>
-        <div class="mt-auto flex items-center justify-between pt-4 text-xs text-slate-500">
-          <span>{{
-            $t('user.pageInfo', { page: submissionsPage, total: submissionsTotalPages })
-          }}</span>
-          <div class="flex items-center gap-2">
-            <button
-              class="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
-              :disabled="submissionsPage <= 1"
-              @click="submissionsPage -= 1"
-            >
-              {{ $t('user.pagePrev') }}
-            </button>
-            <button
-              class="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
-              :disabled="submissionsPage >= submissionsTotalPages"
-              @click="submissionsPage += 1"
-            >
-              {{ $t('user.pageNext') }}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section class="card-surface flex min-h-[420px] flex-col p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-base font-semibold text-slate-900">{{ $t('user.myReviews') }}</h2>
-          <div class="flex items-center gap-2 text-xs text-slate-500">
-            <span>{{ $t('user.sortLabel') }}</span>
-            <select
-              v-model="reviewsOrderBy"
-              class="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs"
-            >
-              <option value="created_at">{{ $t('user.sortCreated') }}</option>
-              <option value="status">{{ $t('user.sortStatus') }}</option>
-            </select>
-            <button
-              class="rounded-full border border-slate-200 px-2 py-1 text-xs"
-              @click="reviewsAscending = !reviewsAscending"
-            >
-              {{ reviewsAscending ? 'ASC' : 'DESC' }}
-            </button>
-          </div>
-        </div>
-        <p v-if="reviewsError" class="mt-2 text-sm text-amber-600">{{ reviewsError }}</p>
-        <div class="mt-4 flex-1 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-500">
-              <tr>
-                <th class="px-4 py-3">{{ $t('user.tableTitle') }}</th>
-                <th class="px-4 py-3">{{ $t('user.tableDecision') }}</th>
-                <th class="px-4 py-3">{{ $t('user.tableCreated') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-if="isLoadingReviews">
-                <tr v-for="index in 3" :key="index" class="border-t border-slate-100">
-                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-32" /></td>
-                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-16" /></td>
-                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-20" /></td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr v-for="item in reviewRows" :key="item.id" class="border-t border-slate-100">
-                  <td class="px-4 py-3">
-                    <router-link
-                      class="font-medium text-slate-900 hover:text-slate-700"
-                      :to="`/submissions/${item.submission_id}/review-opinions`"
-                    >
-                      {{ $t('review.defaultTitle') }} {{ item.id.slice(0, 6) }}
-                    </router-link>
-                  </td>
-                  <td class="px-4 py-3 text-xs text-slate-500">{{ item.decision || '-' }}</td>
-                  <td class="px-4 py-3 text-xs text-slate-500">
-                    {{ formatDate(item.created_at) }}
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-          <div
-            v-if="!isLoadingReviews && !reviewRows.length"
-            class="px-4 py-6 text-center text-xs text-slate-400"
-          >
-            {{ $t('user.emptyReviews') }}
-          </div>
-        </div>
-        <div class="mt-auto flex items-center justify-between pt-4 text-xs text-slate-500">
-          <span>{{ $t('user.pageInfo', { page: reviewsPage, total: reviewsTotalPages }) }}</span>
-          <div class="flex items-center gap-2">
-            <button
-              class="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
-              :disabled="reviewsPage <= 1"
-              @click="reviewsPage -= 1"
-            >
-              {{ $t('user.pagePrev') }}
-            </button>
-            <button
-              class="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
-              :disabled="reviewsPage >= reviewsTotalPages"
-              @click="reviewsPage += 1"
-            >
-              {{ $t('user.pageNext') }}
-            </button>
-          </div>
-        </div>
-      </section>
+    <!-- Tab Navigation -->
+    <div class="fade-rise fade-rise-delay-2">
+      <div class="flex items-center gap-1 border-b border-slate-200">
+        <button
+          class="relative px-4 py-3 text-sm font-medium transition-colors"
+          :class="activeTab === 'submissions' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+          @click="activeTab = 'submissions'"
+        >
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            {{ $t('user.mySubmissions') }}
+          </span>
+          <span
+            v-if="activeTab === 'submissions'"
+            class="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500"
+          />
+        </button>
+        <button
+          class="relative px-4 py-3 text-sm font-medium transition-colors"
+          :class="activeTab === 'reviews' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+          @click="activeTab = 'reviews'"
+        >
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg>
+            {{ $t('user.myReviews') }}
+          </span>
+          <span
+            v-if="activeTab === 'reviews'"
+            class="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500"
+          />
+        </button>
+      </div>
     </div>
 
-    <section v-if="isAdmin" class="card-surface space-y-6 p-5">
-      <div class="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-        <div class="space-y-3 text-sm">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
-            {{ $t('user.adminTitle') }}
-          </p>
+    <!-- Submissions Tab -->
+    <section v-if="activeTab === 'submissions'" class="card-surface flex min-h-[420px] flex-col p-6 fade-rise fade-rise-delay-2">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <h2 class="font-serif text-lg font-semibold text-slate-900">{{ $t('user.mySubmissions') }}</h2>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-slate-500">{{ $t('user.sortLabel') }}</span>
+          <select
+            v-model="submissionsOrderBy"
+            class="select-field w-auto min-w-[120px]"
+          >
+            <option value="updated_at">{{ $t('user.sortUpdated') }}</option>
+            <option value="title">{{ $t('user.sortTitle') }}</option>
+            <option value="status">{{ $t('user.sortStatus') }}</option>
+          </select>
+          <button
+            class="btn-ghost px-3 py-2"
+            @click="submissionsAscending = !submissionsAscending"
+          >
+            <svg v-if="submissionsAscending" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
+          </button>
+        </div>
+      </div>
+      <p v-if="submissionsError" class="mt-3 text-sm text-amber-600">{{ submissionsError }}</p>
+      <div class="mt-4 flex-1 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th class="px-4 py-3">{{ $t('user.tableTitle') }}</th>
+              <th class="px-4 py-3">{{ $t('user.tableStatus') }}</th>
+              <th class="px-4 py-3">{{ $t('user.tableUpdated') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="isLoadingSubmissions">
+              <tr v-for="index in 3" :key="index" class="border-t border-slate-100">
+                <td class="px-4 py-3"><div class="skeleton-text h-4 w-32" /></td>
+                <td class="px-4 py-3"><div class="skeleton-text h-4 w-16" /></td>
+                <td class="px-4 py-3"><div class="skeleton-text h-4 w-20" /></td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr v-for="item in submissionRows" :key="item.id" class="border-t border-slate-100 transition-colors hover:bg-slate-50/50">
+                <td class="px-4 py-3">
+                  <router-link
+                    class="font-medium text-slate-900 transition-colors hover:text-amber-700"
+                    :to="`/submissions/${item.id}`"
+                  >
+                    {{ item.title }}
+                  </router-link>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="badge capitalize" :class="getStatusBadgeClass(item.status)">
+                    {{ item.status }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-slate-500">
+                  {{ formatDate(item.updated_at) }}
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div
+          v-if="!isLoadingSubmissions && !submissionRows.length"
+          class="empty-state"
+        >
+          <div class="empty-state-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <p class="text-sm text-slate-500">{{ $t('user.emptySubmissions') }}</p>
+        </div>
+      </div>
+      <div class="mt-auto flex items-center justify-between pt-4 text-sm">
+        <span class="text-slate-500">{{
+          $t('user.pageInfo', { page: submissionsPage, total: submissionsTotalPages })
+        }}</span>
+        <div class="flex items-center gap-2">
+          <button
+            class="btn-ghost px-3 py-2 disabled:opacity-50"
+            :disabled="submissionsPage <= 1"
+            @click="submissionsPage -= 1"
+          >
+            {{ $t('user.pagePrev') }}
+          </button>
+          <button
+            class="btn-ghost px-3 py-2 disabled:opacity-50"
+            :disabled="submissionsPage >= submissionsTotalPages"
+            @click="submissionsPage += 1"
+          >
+            {{ $t('user.pageNext') }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reviews Tab -->
+    <section v-if="activeTab === 'reviews'" class="card-surface flex min-h-[420px] flex-col p-6 fade-rise fade-rise-delay-2">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <h2 class="font-serif text-lg font-semibold text-slate-900">{{ $t('user.myReviews') }}</h2>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-slate-500">{{ $t('user.sortLabel') }}</span>
+          <select
+            v-model="reviewsOrderBy"
+            class="select-field w-auto min-w-[120px]"
+          >
+            <option value="created_at">{{ $t('user.sortCreated') }}</option>
+            <option value="status">{{ $t('user.sortStatus') }}</option>
+          </select>
+          <button
+            class="btn-ghost px-3 py-2"
+            @click="reviewsAscending = !reviewsAscending"
+          >
+            <svg v-if="reviewsAscending" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
+          </button>
+        </div>
+      </div>
+      <p v-if="reviewsError" class="mt-3 text-sm text-amber-600">{{ reviewsError }}</p>
+      <div class="mt-4 flex-1 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th class="px-4 py-3">{{ $t('user.tableTitle') }}</th>
+              <th class="px-4 py-3">{{ $t('user.tableDecision') }}</th>
+              <th class="px-4 py-3">{{ $t('user.tableCreated') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="isLoadingReviews">
+              <tr v-for="index in 3" :key="index" class="border-t border-slate-100">
+                <td class="px-4 py-3"><div class="skeleton-text h-4 w-32" /></td>
+                <td class="px-4 py-3"><div class="skeleton-text h-4 w-16" /></td>
+                <td class="px-4 py-3"><div class="skeleton-text h-4 w-20" /></td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr v-for="item in reviewRows" :key="item.id" class="border-t border-slate-100 transition-colors hover:bg-slate-50/50">
+                <td class="px-4 py-3">
+                  <router-link
+                    class="font-medium text-slate-900 transition-colors hover:text-amber-700"
+                    :to="`/submissions/${item.submission_id}/review-opinions`"
+                  >
+                    {{ $t('review.defaultTitle') }} {{ item.id.slice(0, 6) }}
+                  </router-link>
+                </td>
+                <td class="px-4 py-3">
+                  <span v-if="item.decision" class="badge capitalize" :class="getStatusBadgeClass(item.decision)">
+                    {{ item.decision }}
+                  </span>
+                  <span v-else class="badge badge-neutral">-</span>
+                </td>
+                <td class="px-4 py-3 text-slate-500">
+                  {{ formatDate(item.created_at) }}
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div
+          v-if="!isLoadingReviews && !reviewRows.length"
+          class="empty-state"
+        >
+          <div class="empty-state-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg>
+          </div>
+          <p class="text-sm text-slate-500">{{ $t('user.emptyReviews') }}</p>
+        </div>
+      </div>
+      <div class="mt-auto flex items-center justify-between pt-4 text-sm">
+        <span class="text-slate-500">{{
+          $t('user.pageInfo', { page: reviewsPage, total: reviewsTotalPages })
+        }}</span>
+        <div class="flex items-center gap-2">
+          <button
+            class="btn-ghost px-3 py-2 disabled:opacity-50"
+            :disabled="reviewsPage <= 1"
+            @click="reviewsPage -= 1"
+          >
+            {{ $t('user.pagePrev') }}
+          </button>
+          <button
+            class="btn-ghost px-3 py-2 disabled:opacity-50"
+            :disabled="reviewsPage >= reviewsTotalPages"
+            @click="reviewsPage += 1"
+          >
+            {{ $t('user.pageNext') }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Admin Section -->
+    <section v-if="isAdmin" class="card-elevated space-y-6 p-6 fade-rise fade-rise-delay-3">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <div>
+          <h2 class="font-serif text-lg font-semibold text-slate-900">{{ $t('user.adminTitle') }}</h2>
+          <p class="text-xs text-slate-500">管理系统权限和公告</p>
+        </div>
+      </div>
+
+      <!-- Admin Tabs -->
+      <div class="flex items-center gap-1 border-b border-slate-200">
+        <button
+          class="relative px-4 py-2 text-sm font-medium transition-colors"
+          :class="adminActiveTab === 'permissions' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+          @click="adminActiveTab = 'permissions'"
+        >
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m22 21-3-3"/><path d="m16 15 3 3"/></svg>
+            权限管理
+          </span>
+          <span
+            v-if="adminActiveTab === 'permissions'"
+            class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"
+          />
+        </button>
+        <button
+          class="relative px-4 py-2 text-sm font-medium transition-colors"
+          :class="adminActiveTab === 'announcements' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'"
+          @click="adminActiveTab = 'announcements'"
+        >
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            {{ $t('user.adminAnnouncements') }}
+          </span>
+          <span
+            v-if="adminActiveTab === 'announcements'"
+            class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500"
+          />
+        </button>
+      </div>
+
+      <!-- Permissions Tab -->
+      <div v-if="adminActiveTab === 'permissions'" class="space-y-4">
+        <div class="grid gap-4 md:grid-cols-2">
           <input
             v-model="adminTargetId"
-            class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            class="input-field"
             :placeholder="$t('user.adminUserId')"
           />
           <select
             v-model="adminRole"
-            class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            class="select-field"
           >
             <option value="author">作者</option>
             <option value="reviewer">审稿人</option>
             <option value="deputy_editor">副主编</option>
             <option value="admin">管理员</option>
           </select>
-          <div class="flex flex-wrap items-center gap-4 text-xs">
-            <label class="flex items-center gap-2">
-              <input v-model="adminCanSubmit" type="checkbox" /> 投稿
-            </label>
-            <label class="flex items-center gap-2">
-              <input v-model="adminCanReview" type="checkbox" /> 审稿
-            </label>
-            <label class="flex items-center gap-2">
-              <input v-model="adminCanComment" type="checkbox" /> 评论
-            </label>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-slate-500">{{ adminMessage }}</span>
-            <button
-              class="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
-              @click="updatePermissions"
-            >
-              {{ $t('user.adminUpdate') }}
-            </button>
-          </div>
         </div>
+        <div class="flex flex-wrap items-center gap-6 rounded-lg border border-slate-200 bg-slate-50/50 p-4 text-sm">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="adminCanSubmit" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-slate-700">允许投稿</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="adminCanReview" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-slate-700">允许审稿</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="adminCanComment" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-slate-700">允许评论</span>
+          </label>
+        </div>
+        <div class="flex items-center justify-between">
+          <span v-if="adminMessage" class="text-sm" :class="adminMessage.includes('error') || adminMessage.includes('失败') ? 'text-rose-600' : 'text-emerald-600'">{{ adminMessage }}</span>
+          <span v-else class="text-sm text-slate-400">更新用户权限设置</span>
+          <button
+            class="btn-primary"
+            @click="updatePermissions"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            {{ $t('user.adminUpdate') }}
+          </button>
+        </div>
+      </div>
 
+      <!-- Announcements Tab -->
+      <div v-if="adminActiveTab === 'announcements'" class="space-y-4">
         <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">
-              {{ $t('user.adminAnnouncements') }}
-            </p>
-            <span class="text-xs text-slate-500">{{ announcementMessage }}</span>
-          </div>
           <input
             v-model="announcementTitle"
-            class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            class="input-field"
             :placeholder="$t('user.adminAnnouncementTitle')"
           />
           <textarea
             v-model="announcementBody"
-            class="min-h-[120px] w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            class="textarea-field min-h-[120px]"
             :placeholder="$t('user.adminAnnouncementBody')"
           />
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <button
-              class="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
+              class="btn-primary"
               @click="saveAnnouncement"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               {{
                 editingAnnouncementId
                   ? $t('user.adminAnnouncementUpdate')
@@ -549,113 +682,139 @@ onMounted(() => {
             </button>
             <button
               v-if="editingAnnouncementId"
-              class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700"
+              class="btn-secondary"
               @click="cancelEditAnnouncement"
             >
               {{ $t('user.adminAnnouncementCancel') }}
             </button>
+            <span v-if="announcementMessage" class="ml-auto text-sm" :class="announcementMessage.includes('error') || announcementMessage.includes('失败') ? 'text-rose-600' : 'text-emerald-600'">{{ announcementMessage }}</span>
           </div>
         </div>
-      </div>
 
-      <p v-if="announcementsError" class="text-sm text-amber-600">{{ announcementsError }}</p>
-      <div class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-500">
-            <tr>
-              <th class="px-4 py-3">{{ $t('user.tableTitle') }}</th>
-              <th class="px-4 py-3">{{ $t('user.tableUpdated') }}</th>
-              <th class="px-4 py-3">{{ $t('user.tableStatus') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-if="isLoadingAnnouncements">
-              <tr v-for="index in 3" :key="index" class="border-t border-slate-100">
-                <td class="px-4 py-3"><div class="skeleton-text h-4 w-32" /></td>
-                <td class="px-4 py-3"><div class="skeleton-text h-4 w-20" /></td>
-                <td class="px-4 py-3"><div class="skeleton-text h-4 w-16" /></td>
-              </tr>
-            </template>
-            <template v-else>
-              <tr v-for="item in announcements" :key="item.id" class="border-t border-slate-100">
-                <td class="px-4 py-3">
-                  <p class="font-medium text-slate-900">{{ item.title }}</p>
-                  <p v-if="item.body_md" class="text-xs text-slate-500">{{ item.body_md }}</p>
-                </td>
-                <td class="px-4 py-3 text-xs text-slate-500">{{ formatDate(item.updated_at) }}</td>
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-2 text-xs">
-                    <button
-                      class="rounded-full border border-slate-200 px-2 py-1"
-                      @click="startEditAnnouncement(item)"
-                    >
-                      {{ $t('user.adminAnnouncementEdit') }}
-                    </button>
-                    <button
-                      class="rounded-full border border-amber-200 px-2 py-1 text-amber-700"
-                      @click="removeAnnouncement(item.id)"
-                    >
-                      {{ $t('user.adminAnnouncementDelete') }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-        <div
-          v-if="!isLoadingAnnouncements && !announcements.length"
-          class="px-4 py-6 text-center text-xs text-slate-400"
-        >
-          {{ $t('user.adminAnnouncementEmpty') }}
-        </div>
-      </div>
+        <div class="section-divider my-4" />
 
-      <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-        <div class="flex items-center gap-2">
-          <span>{{ $t('user.sortLabel') }}</span>
-          <select
-            v-model="announcementsOrderBy"
-            class="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs"
-          >
-            <option value="created_at">{{ $t('user.sortCreated') }}</option>
-            <option value="updated_at">{{ $t('user.sortUpdated') }}</option>
-            <option value="title">{{ $t('user.sortTitle') }}</option>
-          </select>
-          <button
-            class="rounded-full border border-slate-200 px-2 py-1 text-xs"
-            @click="announcementsAscending = !announcementsAscending"
-          >
-            {{ announcementsAscending ? 'ASC' : 'DESC' }}
-          </button>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="font-serif text-base font-semibold text-slate-900">公告列表</h3>
+          <div class="flex items-center gap-2 text-sm">
+            <select
+              v-model="announcementsOrderBy"
+              class="select-field w-auto min-w-[100px]"
+            >
+              <option value="created_at">{{ $t('user.sortCreated') }}</option>
+              <option value="updated_at">{{ $t('user.sortUpdated') }}</option>
+              <option value="title">{{ $t('user.sortTitle') }}</option>
+            </select>
+            <button
+              class="btn-ghost px-2 py-2"
+              @click="announcementsAscending = !announcementsAscending"
+            >
+              <svg v-if="announcementsAscending" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <span>{{
+
+        <p v-if="announcementsError" class="text-sm text-amber-600">{{ announcementsError }}</p>
+
+        <div class="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="px-4 py-3">{{ $t('user.tableTitle') }}</th>
+                <th class="px-4 py-3">{{ $t('user.tableUpdated') }}</th>
+                <th class="px-4 py-3 text-right">{{ $t('user.tableStatus') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-if="isLoadingAnnouncements">
+                <tr v-for="index in 3" :key="index" class="border-t border-slate-100">
+                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-32" /></td>
+                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-20" /></td>
+                  <td class="px-4 py-3"><div class="skeleton-text h-4 w-16" /></td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr v-for="item in announcements" :key="item.id" class="border-t border-slate-100 transition-colors hover:bg-slate-50/50">
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-slate-900">{{ item.title }}</p>
+                    <p v-if="item.body_md" class="mt-1 line-clamp-1 text-xs text-slate-500">{{ item.body_md }}</p>
+                  </td>
+                  <td class="px-4 py-3 text-xs text-slate-500">{{ formatDate(item.updated_at) }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        class="btn-ghost px-2 py-1 text-xs"
+                        @click="startEditAnnouncement(item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                        {{ $t('user.adminAnnouncementEdit') }}
+                      </button>
+                      <button
+                        class="btn-ghost px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        @click="removeAnnouncement(item.id)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        {{ $t('user.adminAnnouncementDelete') }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div
+            v-if="!isLoadingAnnouncements && !announcements.length"
+            class="empty-state"
+          >
+            <div class="empty-state-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            </div>
+            <p class="text-sm text-slate-500">{{ $t('user.adminAnnouncementEmpty') }}</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span class="text-slate-500">{{
             $t('user.pageInfo', { page: announcementsPage, total: announcementsTotalPages })
           }}</span>
-          <button
-            class="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
-            :disabled="announcementsPage <= 1"
-            @click="announcementsPage -= 1"
-          >
-            {{ $t('user.pagePrev') }}
-          </button>
-          <button
-            class="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
-            :disabled="announcementsPage >= announcementsTotalPages"
-            @click="announcementsPage += 1"
-          >
-            {{ $t('user.pageNext') }}
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              class="btn-ghost px-3 py-2 disabled:opacity-50"
+              :disabled="announcementsPage <= 1"
+              @click="announcementsPage -= 1"
+            >
+              {{ $t('user.pagePrev') }}
+            </button>
+            <button
+              class="btn-ghost px-3 py-2 disabled:opacity-50"
+              :disabled="announcementsPage >= announcementsTotalPages"
+              @click="announcementsPage += 1"
+            >
+              {{ $t('user.pageNext') }}
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <button
-      class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300"
-      @click="handleSignOut"
-    >
-      {{ $t('user.signOut') }}
-    </button>
+    <!-- Sign Out -->
+    <div class="flex justify-end fade-rise fade-rise-delay-3">
+      <button
+        class="btn-secondary"
+        @click="handleSignOut"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        {{ $t('user.signOut') }}
+      </button>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { createSubmission } from '../services/supabaseApi'
 import { useAuth } from '../stores/auth'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const router = useRouter()
 const { user, profile } = useAuth()
@@ -13,6 +14,9 @@ const title = ref('')
 const abstract = ref('')
 const content = ref('')
 const keywordsInput = ref('')
+const authorName = ref('')
+const authorEmail = ref('')
+const authorAffiliation = ref('')
 const errorMessage = ref('')
 const infoMessage = ref('')
 const isSubmitting = ref(false)
@@ -44,6 +48,9 @@ const submit = async () => {
     abstract: abstract.value.trim(),
     content_md: content.value.trim(),
     author_id: user.value.id,
+    author_name: authorName.value.trim() || null,
+    author_email: authorEmail.value.trim() || null,
+    author_affiliation: authorAffiliation.value.trim() || null,
     keywords,
   })
 
@@ -77,21 +84,23 @@ const submit = async () => {
       </div>
       <div>
         <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelAbstract') }}</label>
-        <textarea
-          v-model="abstract"
-          rows="4"
-          class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          :placeholder="$t('submit.placeholderAbstract')"
-        />
+        <div class="mt-2">
+          <MarkdownEditor
+            v-model="abstract"
+            :height="200"
+            :placeholder="$t('submit.placeholderAbstract')"
+          />
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelContent') }}</label>
-        <textarea
-          v-model="content"
-          rows="10"
-          class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-          :placeholder="$t('submit.placeholderContent')"
-        />
+        <div class="mt-2">
+          <MarkdownEditor
+            v-model="content"
+            :height="400"
+            :placeholder="$t('submit.placeholderContent')"
+          />
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium text-slate-700">{{ $t('submit.labelKeywords') }}</label>
@@ -100,6 +109,42 @@ const submit = async () => {
           class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
           :placeholder="$t('submit.placeholderKeywords')"
         />
+      </div>
+      <div class="border-t border-slate-200 pt-4">
+        <h3 class="mb-3 text-sm font-semibold text-slate-900">{{ $t('submit.authorInfo') }}</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="text-sm font-medium text-slate-700">{{
+              $t('submit.labelAuthorName')
+            }}</label>
+            <input
+              v-model="authorName"
+              class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              :placeholder="$t('submit.placeholderAuthorName')"
+            />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700">{{
+              $t('submit.labelAuthorEmail')
+            }}</label>
+            <input
+              v-model="authorEmail"
+              type="email"
+              class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+              :placeholder="$t('submit.placeholderAuthorEmail')"
+            />
+          </div>
+        </div>
+        <div class="mt-4">
+          <label class="text-sm font-medium text-slate-700">{{
+            $t('submit.labelAuthorAffiliation')
+          }}</label>
+          <input
+            v-model="authorAffiliation"
+            class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+            :placeholder="$t('submit.placeholderAuthorAffiliation')"
+          />
+        </div>
       </div>
     </div>
 

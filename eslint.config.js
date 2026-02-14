@@ -6,6 +6,9 @@ import tsParser from '@typescript-eslint/parser'
 import prettier from 'eslint-config-prettier'
 
 export default [
+  {
+    ignores: ['dist/**', 'node_modules/**'],
+  },
   js.configs.recommended,
   ...vue.configs['flat/recommended'],
   {
@@ -22,6 +25,8 @@ export default [
         window: 'readonly',
         HTMLElement: 'readonly',
         HTMLLinkElement: 'readonly',
+        Event: 'readonly',
+        KeyboardEvent: 'readonly',
       },
     },
     plugins: {

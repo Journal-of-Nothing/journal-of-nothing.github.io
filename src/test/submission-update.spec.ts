@@ -74,22 +74,54 @@ describe('submission update flow', () => {
     const { default: SubmissionDetailPage } = await import('../pages/SubmissionDetailPage.vue')
     const wrapper = mount(SubmissionDetailPage, {
       global: {
-        stubs: { RouterLink: true },
+        stubs: {
+          RouterLink: true,
+          MarkdownEditor: {
+            template:
+              '<div class="mock-markdown-editor"><textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea></div>',
+            props: ['modelValue'],
+          },
+        },
       },
     })
 
     await flushPromises()
 
-    await wrapper.find('input[placeholder="关键词，用逗号分隔"]').setValue('alpha, beta')
-    const titleInput = wrapper.findAll('input').find((input) => !input.attributes('placeholder'))
+    // Find inputs by their labels in the edit section
+    const inputs = wrapper.findAll('input')
+    const textareas = wrapper.findAll('textarea')
+
+    // Find title input (first input without placeholder in edit section)
+    const titleInput = inputs.find((input) => {
+      const el = input.element as unknown as { type: string }
+      return el.type === 'text' && !input.attributes('placeholder')?.includes('关键词')
+    })
     if (!titleInput) {
       throw new Error('Title input not found')
     }
     await titleInput.setValue('New Title')
-    await wrapper.find('textarea[rows="3"]').setValue('New Abstract')
-    await wrapper.find('textarea[rows="6"]').setValue('New Content')
 
-    const saveButton = wrapper.findAll('button').find((button) => button.text() === '保存修改')
+    // Find abstract textarea (first textarea)
+    if (textareas.length > 0) {
+      await textareas[0].setValue('New Abstract')
+    }
+
+    // Find content textarea (second textarea)
+    if (textareas.length > 1) {
+      await textareas[1].setValue('New Content')
+    }
+
+    // Find keywords input
+    const keywordsInput = inputs.find((input) =>
+      input.attributes('placeholder')?.includes('关键词'),
+    )
+    if (keywordsInput) {
+      await keywordsInput.setValue('alpha, beta')
+    }
+
+    const saveButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('保存') || button.text().includes('Save'))
     if (!saveButton) {
       throw new Error('Save button not found')
     }

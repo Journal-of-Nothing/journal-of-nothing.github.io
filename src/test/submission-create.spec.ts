@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
+const markdownEditorStub = {
+  template:
+    '<div class="mock-markdown-editor"><textarea :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea></div>',
+  props: ['modelValue', 'placeholder'],
+}
+
 vi.mock('../stores/auth', async () => {
   const { ref } = await import('vue')
   const user = ref<unknown | null>(null)
@@ -35,7 +41,13 @@ describe('submission create flow', () => {
     auth.__setAuth(null, null)
 
     const { default: SubmissionCreatePage } = await import('../pages/SubmissionCreatePage.vue')
-    const wrapper = mount(SubmissionCreatePage)
+    const wrapper = mount(SubmissionCreatePage, {
+      global: {
+        stubs: {
+          MarkdownEditor: markdownEditorStub,
+        },
+      },
+    })
 
     const submitButton = wrapper.findAll('button').find((button) => button.text() === '提交投稿')
     if (!submitButton) {
@@ -54,7 +66,13 @@ describe('submission create flow', () => {
     auth.__setAuth({ id: 'user-1' }, { can_submit: false })
 
     const { default: SubmissionCreatePage } = await import('../pages/SubmissionCreatePage.vue')
-    const wrapper = mount(SubmissionCreatePage)
+    const wrapper = mount(SubmissionCreatePage, {
+      global: {
+        stubs: {
+          MarkdownEditor: markdownEditorStub,
+        },
+      },
+    })
 
     const submitButton = wrapper.findAll('button').find((button) => button.text() === '提交投稿')
     if (!submitButton) {
@@ -76,7 +94,15 @@ describe('submission create flow', () => {
     ;(createSubmission as ReturnType<typeof vi.fn>).mockResolvedValue({ error: null })
 
     const { default: SubmissionCreatePage } = await import('../pages/SubmissionCreatePage.vue')
-    const wrapper = mount(SubmissionCreatePage)
+    const wrapper = mount(SubmissionCreatePage, {
+      global: {
+        stubs: {
+          MarkdownEditor: {
+            ...markdownEditorStub,
+          },
+        },
+      },
+    })
 
     await wrapper.find('input[placeholder="文章标题"]').setValue('Test Title')
     await wrapper.find('textarea[placeholder="文章摘要"]').setValue('Test Abstract')
@@ -95,6 +121,9 @@ describe('submission create flow', () => {
       abstract: 'Test Abstract',
       content_md: 'Test Content',
       author_id: 'user-1',
+      author_name: null,
+      author_email: null,
+      author_affiliation: null,
       keywords: ['alpha', 'beta', 'gamma'],
     })
 

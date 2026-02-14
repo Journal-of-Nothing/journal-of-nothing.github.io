@@ -75,6 +75,7 @@ export const initAuth = async () => {
 
 export const useAuth = () => {
   const user = computed(() => session.value?.user ?? null)
+  const isAuthenticated = computed(() => !!session.value?.user)
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -86,6 +87,7 @@ export const useAuth = () => {
     user,
     profile,
     isInitialized,
+    isAuthenticated,
     signOut,
   }
 }

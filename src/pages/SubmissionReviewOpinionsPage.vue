@@ -11,16 +11,22 @@ import {
   fetchSubmissionDetail,
 } from '../services/supabaseApi'
 import { useAuth } from '../stores/auth'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
+import { renderMarkdown } from '../lib/markdown'
 
 type ReviewOpinionItem = {
   id: string
   title: string
+  body: string
+  bodyHtml: string
+  isExpanded: boolean
   author: string
   time: string
   status: 'open' | 'closed'
   decision: 'accept' | 'minor' | 'major' | 'reject' | null
   reviewerId: string | null
   reply: string | null
+  replyHtml: string | null
 }
 
 type ReviewOpinionReplyItem = {
@@ -30,6 +36,7 @@ type ReviewOpinionReplyItem = {
   role: 'author' | 'reviewer'
   time: string
   body: string
+  bodyHtml: string
 }
 
 const route = useRoute()
@@ -48,6 +55,56 @@ const formBody = ref('')
 const formDecision = ref<'accept' | 'minor' | 'major' | 'reject'>('minor')
 const submitMessage = ref('')
 const submitError = ref('')
+const replyMap = ref<Record<string, string>>({})
+
+const buildReviewOpinionTitle = (markdown: string) => {
+  const text = markdown.replace(/\s+/g, ' ').trim()
+  return text.slice(0, 80) || t('review.defaultTitle')
+}
+
+const mapReviewOpinions = (rows: any[] | null | undefined): ReviewOpinionItem[] => {
+  const expandedState = new Map(reviewOpinions.value.map((item) => [item.id, item.isExpanded]))
+
+  return (
+    rows?.map((row) => {
+      const body = row.body_md || ''
+      return {
+        id: row.id,
+        title: buildReviewOpinionTitle(body),
+        body,
+        bodyHtml: renderMarkdown(body),
+        isExpanded: expandedState.get(row.id) ?? false,
+        author: row.reviewer?.username ? `@${row.reviewer.username}` : t('review.reviewerFallback'),
+        time: new Date(row.created_at).toLocaleDateString(),
+        status: row.status || 'open',
+        decision: row.decision ?? null,
+        reviewerId: row.reviewer_id ?? null,
+        reply: row.author_reply_md ?? null,
+        replyHtml: row.author_reply_md ? renderMarkdown(row.author_reply_md) : null,
+      }
+    }) ?? []
+  )
+}
+
+const mapReviewOpinionReplies = (
+  rows: any[] | null | undefined,
+): Record<string, ReviewOpinionReplyItem[]> => {
+  const grouped: Record<string, ReviewOpinionReplyItem[]> = {}
+  rows?.forEach((row) => {
+    const key = row.review_opinion_id
+    if (!grouped[key]) grouped[key] = []
+    grouped[key].push({
+      id: row.id,
+      reviewOpinionId: row.review_opinion_id,
+      author: row.author?.username ? `@${row.author.username}` : t('detail.unknownAuthor'),
+      role: row.role,
+      time: new Date(row.created_at).toLocaleDateString(),
+      body: row.body_md,
+      bodyHtml: renderMarkdown(row.body_md || ''),
+    })
+  })
+  return grouped
+}
 
 onMounted(async () => {
   const submissionId = route.params.id as string
@@ -75,37 +132,12 @@ onMounted(async () => {
     return
   }
 
-  reviewOpinions.value =
-    data?.map((row) => ({
-      id: row.id,
-      title: row.body_md?.slice(0, 80) || t('review.defaultTitle'),
-      author: row.reviewer?.username ? `@${row.reviewer.username}` : t('review.reviewerFallback'),
-      time: new Date(row.created_at).toLocaleDateString(),
-      status: row.status || 'open',
-      decision: row.decision ?? null,
-      reviewerId: row.reviewer_id ?? null,
-      reply: row.author_reply_md ?? null,
-    })) ?? []
+  reviewOpinions.value = mapReviewOpinions(data)
 
   const { data: replies } = await fetchReviewOpinionReplies(submissionId)
-  const grouped: Record<string, ReviewOpinionReplyItem[]> = {}
-  replies?.forEach((row) => {
-    const key = row.review_opinion_id
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push({
-      id: row.id,
-      reviewOpinionId: row.review_opinion_id,
-      author: row.author?.username ? `@${row.author.username}` : t('detail.unknownAuthor'),
-      role: row.role,
-      time: new Date(row.created_at).toLocaleDateString(),
-      body: row.body_md,
-    })
-  })
-  reviewOpinionReplies.value = grouped
+  reviewOpinionReplies.value = mapReviewOpinionReplies(replies)
   isLoading.value = false
 })
-
-const replyMap = ref<Record<string, string>>({})
 
 const canReview = () => {
   if (!user.value) return false
@@ -155,20 +187,7 @@ const submitOpinionReply = async (opinion: ReviewOpinionItem) => {
   submitMessage.value = t('review.replySuccess')
 
   const { data: replies } = await fetchReviewOpinionReplies(submissionId)
-  const grouped: Record<string, ReviewOpinionReplyItem[]> = {}
-  replies?.forEach((row) => {
-    const key = row.review_opinion_id
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push({
-      id: row.id,
-      reviewOpinionId: row.review_opinion_id,
-      author: row.author?.username ? `@${row.author.username}` : t('detail.unknownAuthor'),
-      role: row.role,
-      time: new Date(row.created_at).toLocaleDateString(),
-      body: row.body_md,
-    })
-  })
-  reviewOpinionReplies.value = grouped
+  reviewOpinionReplies.value = mapReviewOpinionReplies(replies)
 }
 
 const submitReviewOpinion = async () => {
@@ -204,17 +223,7 @@ const submitReviewOpinion = async () => {
   formBody.value = ''
   submitMessage.value = t('review.success')
   const { data } = await fetchReviewOpinions(submissionId)
-  reviewOpinions.value =
-    data?.map((row) => ({
-      id: row.id,
-      title: row.body_md?.slice(0, 80) || t('review.defaultTitle'),
-      author: row.reviewer?.username ? `@${row.reviewer.username}` : t('review.reviewerFallback'),
-      time: new Date(row.created_at).toLocaleDateString(),
-      status: row.status || 'open',
-      decision: row.decision ?? null,
-      reviewerId: row.reviewer_id ?? null,
-      reply: row.author_reply_md ?? null,
-    })) ?? reviewOpinions.value
+  reviewOpinions.value = data ? mapReviewOpinions(data) : reviewOpinions.value
 }
 
 const closeOpinion = async (id: string) => {
@@ -226,17 +235,11 @@ const closeOpinion = async (id: string) => {
   }
   const submissionId = route.params.id as string
   const { data } = await fetchReviewOpinions(submissionId)
-  reviewOpinions.value =
-    data?.map((row) => ({
-      id: row.id,
-      title: row.body_md?.slice(0, 80) || t('review.defaultTitle'),
-      author: row.reviewer?.username ? `@${row.reviewer.username}` : t('review.reviewerFallback'),
-      time: new Date(row.created_at).toLocaleDateString(),
-      status: row.status || 'open',
-      decision: row.decision ?? null,
-      reviewerId: row.reviewer_id ?? null,
-      reply: row.author_reply_md ?? null,
-    })) ?? reviewOpinions.value
+  reviewOpinions.value = data ? mapReviewOpinions(data) : reviewOpinions.value
+}
+
+const toggleOpinionExpand = (opinion: ReviewOpinionItem) => {
+  opinion.isExpanded = !opinion.isExpanded
 }
 </script>
 
@@ -283,49 +286,37 @@ const closeOpinion = async (id: string) => {
     <p v-if="errorMessage" class="text-sm text-amber-600">{{ errorMessage }}</p>
 
     <div class="rounded-lg border border-slate-200 bg-white">
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4"
-      >
-        <div class="flex items-center gap-4 text-sm text-slate-600">
-          <span class="font-medium text-slate-900">{{
-            $t('review.openCount', { count: reviewOpinions.length })
-          }}</span>
-          <span>{{ $t('review.closedCount', { count: 0 }) }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button
-            class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
-            @click="submitReviewOpinion"
-          >
-            {{ $t('review.submit') }}
-          </button>
-        </div>
-      </div>
       <div class="border-b border-slate-200 px-6 py-4 text-sm">
-        <div class="grid gap-3 md:grid-cols-[1fr_1fr]">
-          <div class="space-y-2">
-            <label class="text-xs text-slate-500">{{ $t('review.labelDecision') }}</label>
-            <select
-              v-model="formDecision"
-              class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value="accept">接受</option>
-              <option value="minor">小修</option>
-              <option value="major">大修</option>
-              <option value="reject">拒稿</option>
-            </select>
-          </div>
+        <div class="space-y-3">
           <div class="space-y-2">
             <label class="text-xs text-slate-500">{{ $t('review.labelBody') }}</label>
-            <textarea
+            <MarkdownEditor
               v-model="formBody"
-              rows="3"
-              class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+              :height="200"
               :placeholder="$t('review.placeholderBody')"
             />
           </div>
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <select
+                v-model="formDecision"
+                class="w-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="accept">接受</option>
+                <option value="minor">小修</option>
+                <option value="major">大修</option>
+                <option value="reject">拒稿</option>
+              </select>
+            </div>
+            <button
+              class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+              @click="submitReviewOpinion"
+            >
+              {{ $t('review.submit') }}
+            </button>
+          </div>
         </div>
-        <div class="mt-2 text-xs">
+        <div class="mt-3 text-xs">
           <p v-if="submitError" class="text-red-600">{{ submitError }}</p>
           <p v-if="submitMessage" class="text-emerald-600">{{ submitMessage }}</p>
         </div>
@@ -368,19 +359,34 @@ const closeOpinion = async (id: string) => {
                 </div>
                 <div class="mt-1 flex items-center justify-between text-xs text-slate-500">
                   <span>{{ pr.author }} · {{ pr.time }}</span>
-                  <button
-                    v-if="(pr.reviewerId && pr.reviewerId === user?.id) || isStaff()"
-                    class="text-xs text-slate-600 hover:text-slate-900"
-                    @click="closeOpinion(pr.id)"
-                  >
-                    {{ $t('review.close') }}
-                  </button>
+                  <div class="flex items-center gap-3">
+                    <button
+                      class="text-xs text-slate-600 hover:text-slate-900"
+                      @click="toggleOpinionExpand(pr)"
+                    >
+                      {{ pr.isExpanded ? $t('common.hide') : $t('common.show') }}
+                    </button>
+                    <button
+                      v-if="
+                        pr.status !== 'closed' &&
+                        ((pr.reviewerId && pr.reviewerId === user?.id) || isStaff())
+                      "
+                      class="text-xs text-slate-600 hover:text-slate-900"
+                      @click="closeOpinion(pr.id)"
+                    >
+                      {{ $t('review.close') }}
+                    </button>
+                  </div>
+                </div>
+                <div v-if="pr.isExpanded" class="mt-3 rounded-md border border-slate-100 bg-slate-50 p-3">
+                  <div class="prose-content text-sm" v-html="pr.bodyHtml"></div>
                 </div>
                 <div
                   v-if="pr.reply"
                   class="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
                 >
-                  {{ $t('review.replyHistory', { reply: pr.reply }) }}
+                  <p class="mb-1">{{ $t('review.replyHistory') }}</p>
+                  <div class="prose-content text-sm" v-html="pr.replyHtml"></div>
                 </div>
                 <div v-if="reviewOpinionReplies[pr.id]?.length" class="mt-3 space-y-2">
                   <div
@@ -399,16 +405,16 @@ const closeOpinion = async (id: string) => {
                       >
                       <span>{{ reply.time }}</span>
                     </div>
-                    <p class="mt-1 text-slate-700">{{ reply.body }}</p>
+                    <div class="prose-content mt-1 text-sm" v-html="reply.bodyHtml"></div>
                   </div>
                 </div>
                 <div v-if="canReplyToOpinion(pr)" class="mt-3 space-y-2 text-xs">
                   <label class="text-slate-500">{{ $t('review.replyLabel') }}</label>
-                  <textarea
-                    v-model="replyMap[pr.id]"
-                    rows="2"
-                    class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  <MarkdownEditor
+                    :model-value="replyMap[pr.id] ?? ''"
                     :placeholder="$t('review.replyPlaceholder')"
+                    :height="120"
+                    @update:model-value="(value) => (replyMap[pr.id] = value)"
                   />
                   <div class="flex justify-end">
                     <button
