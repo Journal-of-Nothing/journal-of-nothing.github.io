@@ -30,3 +30,4 @@
 
 本站处于公测阶段。功能会持续调整，但核心原则不变：
 **透明、可讨论、可复盘；互为作者，互为审稿人。**
+有任何问题，请到[GitHub提出issues](https://github.com/Journal-of-Nothing/journal-of-nothing/issues)

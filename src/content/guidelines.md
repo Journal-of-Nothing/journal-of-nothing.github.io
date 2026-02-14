@@ -54,4 +54,4 @@
 
 ## 八、最后一句
 
-把每次投稿当作一次公开思考，把每次审稿当作一次共同写作。
+把每次投稿当作一次公开思考，把每次审稿当作一次共同写作。有任何问题，请到[GitHub提出issues](https://github.com/Journal-of-Nothing/journal-of-nothing/issues)
